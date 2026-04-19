@@ -1,0 +1,56 @@
+# ============================================================
+# PADEL MANAGER - Tests des endpoints API
+# Pour utiliser ce fichier : installer l'extension REST Client
+# sur VS Code, puis cliquer sur "Send Request" au-dessus de chaque requête
+# ============================================================
+
+# Le serveur PHP doit être lancé avant :
+# php -S localhost:8000
+
+
+### Récupérer tous les sites actifs
+GET http://localhost:8000/sites
+Accept: application/json
+
+###
+
+### Récupérer un site par son ID (ex: ID = 1)
+GET http://localhost:8000/sites/1
+Accept: application/json
+
+###
+
+### Récupérer un site qui n'existe pas (doit retourner une erreur 404)
+GET http://localhost:8000/sites/999
+Accept: application/json
+
+###
+
+### Créer un nouveau site
+POST http://localhost:8000/sites
+Content-Type: application/json
+
+{
+    "nom": "Club Bordeaux",
+    "adresse": "1 avenue du Vin",
+    "ville": "Bordeaux",
+    "code_postal": "33000"
+}
+
+###
+
+### Mettre à jour un site existant (ex: ID = 1)
+PUT http://localhost:8000/sites/1
+Content-Type: application/json
+
+{
+    "nom": "Club Paris Modifié",
+    "ville": "Paris",
+    "code_postal": "75002"
+}
+
+###
+
+### Supprimer un site (ex: ID = 1)
+DELETE http://localhost:8000/sites/1
+Accept: application/json
