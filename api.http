@@ -1,0 +1,97 @@
+# ============================================================
+# MEMBRES
+# ============================================================
+
+### Récupérer tous les membres actifs
+GET http://localhost:8000/api/membres
+Accept: application/json
+
+###
+
+### Récupérer les membres d'une catégorie (G, S ou L)
+GET http://localhost:8000/api/membres?categorie=G
+Accept: application/json
+
+###
+
+### Récupérer un membre par son ID (ex: ID = 1)
+GET http://localhost:8000/api/membres/1
+Accept: application/json
+
+###
+
+### Récupérer un membre par son matricule
+GET http://localhost:8000/api/membres/matricule/G0001
+Accept: application/json
+
+###
+
+### Créer un membre Global (catégorie G — pas de site_id)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "G0001",
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "email": "jean.dupont@email.com",
+    "telephone": "0601020304",
+    "categorie": "G"
+}
+
+###
+
+### Créer un membre Site (catégorie S — site_id obligatoire)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "S00001",
+    "nom": "Martin",
+    "prenom": "Alice",
+    "categorie": "S",
+    "site_id": 1
+}
+
+###
+
+### Créer un membre Libre (catégorie L — pas de site_id)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "L00001",
+    "nom": "Bernard",
+    "prenom": "Paul",
+    "categorie": "L"
+}
+
+###
+
+### Tester erreur : catégorie S sans site_id (doit retourner 400)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "S00002",
+    "nom": "Test",
+    "prenom": "Erreur",
+    "categorie": "S"
+}
+
+###
+
+### Mettre à jour un membre (ex: ID = 1)
+PUT http://localhost:8000/api/membres/1
+Content-Type: application/json
+
+{
+    "email": "nouveau.email@example.com",
+    "telephone": "0699887766"
+}
+
+###
+
+### Supprimer (désactiver) un membre (ex: ID = 1)
+DELETE http://localhost:8000/api/membres/1
+Accept: application/json
