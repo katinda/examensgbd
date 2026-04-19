@@ -7,10 +7,13 @@
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/repositories/SiteRepository.php';
 require_once __DIR__ . '/repositories/TerrainRepository.php';
+require_once __DIR__ . '/repositories/MembreRepository.php';
 require_once __DIR__ . '/services/SiteService.php';
 require_once __DIR__ . '/services/TerrainService.php';
+require_once __DIR__ . '/services/MembreService.php';
 require_once __DIR__ . '/controllers/SiteController.php';
 require_once __DIR__ . '/controllers/TerrainController.php';
+require_once __DIR__ . '/controllers/MembreController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -19,10 +22,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 $pdo               = Database::getConnection();
 $siteRepo          = new SiteRepository($pdo);
 $terrainRepo       = new TerrainRepository($pdo);
+$membreRepo        = new MembreRepository($pdo);
 $siteService       = new SiteService($siteRepo);
 $terrainService    = new TerrainService($terrainRepo, $siteRepo);
+$membreService     = new MembreService($membreRepo, $siteRepo);
 $siteController    = new SiteController($siteService);
 $terrainController = new TerrainController($terrainService);
+$membreController  = new MembreController($membreService);
 
 // --- Routeur ---
 
@@ -69,6 +75,30 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /terrains/{id} → supprime un terrain
 } elseif ($method === 'DELETE' && preg_match('#^/terrains/(\d+)$#', $uri, $matches)) {
     $terrainController->delete((int) $matches[1]);
+
+// GET /api/membres ou /api/membres?categorie=G
+} elseif ($method === 'GET' && $uri === '/api/membres') {
+    $membreController->getAll();
+
+// GET /api/membres/matricule/{matricule} — AVANT /api/membres/{id} pour éviter le conflit
+} elseif ($method === 'GET' && preg_match('#^/api/membres/matricule/([A-Z0-9]+)$#i', $uri, $matches)) {
+    $membreController->getByMatricule($matches[1]);
+
+// GET /api/membres/{id}
+} elseif ($method === 'GET' && preg_match('#^/api/membres/(\d+)$#', $uri, $matches)) {
+    $membreController->getById((int) $matches[1]);
+
+// POST /api/membres
+} elseif ($method === 'POST' && $uri === '/api/membres') {
+    $membreController->create();
+
+// PUT /api/membres/{id}
+} elseif ($method === 'PUT' && preg_match('#^/api/membres/(\d+)$#', $uri, $matches)) {
+    $membreController->update((int) $matches[1]);
+
+// DELETE /api/membres/{id}
+} elseif ($method === 'DELETE' && preg_match('#^/api/membres/(\d+)$#', $uri, $matches)) {
+    $membreController->delete((int) $matches[1]);
 
 // URL inconnue → erreur 404
 } else {
