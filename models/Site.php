@@ -10,13 +10,31 @@ class Site {
     // Chaque propriété correspond à une colonne de la table Sites en base de données.
     // Le ? devant le type (ex: ?string) veut dire que la valeur peut être null (vide).
 
-    private int $siteId;        // numéro unique du site (colonne Site_ID)
+    private ?int $siteId;        // numéro unique du site (colonne Site_ID)
     private string $nom;        // nom du site, obligatoire (colonne Nom)
     private ?string $adresse;   // adresse, peut être vide (colonne Adresse)
     private ?string $ville;     // ville, peut être vide (colonne Ville)
     private ?string $codePostal;// code postal, peut être vide (colonne Code_Postal)
     private bool $estActif;     // true = site ouvert, false = site fermé (colonne Est_Actif)
-    private string $dateCreation; // date à laquelle le site a été créé (colonne Date_Creation)
+    private ?string $dateCreation; // date à laquelle le site a été créé (colonne Date_Creation)
+
+    public function __construct(
+        ?int $siteId,
+        string $nom,
+        ?string $adresse,
+        ?string $ville,
+        ?string $codePostal,
+        bool $estActif = true,
+        ?string $dateCreation = null
+    ) {
+        $this->siteId       = $siteId;
+        $this->nom          = $nom;
+        $this->adresse      = $adresse;
+        $this->ville        = $ville;
+        $this->codePostal   = $codePostal;
+        $this->estActif     = $estActif;
+        $this->dateCreation = $dateCreation;
+    }
 
     // --- Getters et Setters ---
     // Un getter permet de LIRE une propriété depuis l'extérieur de la classe.
@@ -27,8 +45,8 @@ class Site {
     // $site->getNom()         → lit le nom du site
     // $site->setNom("Paris")  → change le nom du site
 
-    public function getSiteId(): int { return $this->siteId; }
-    public function setSiteId(int $siteId): void { $this->siteId = $siteId; }
+    public function getSiteId(): ?int { return $this->siteId; }
+    public function setSiteId(?int $siteId): void { $this->siteId = $siteId; }
 
     public function getNom(): string { return $this->nom; }
     public function setNom(string $nom): void { $this->nom = $nom; }
@@ -45,6 +63,6 @@ class Site {
     public function isEstActif(): bool { return $this->estActif; }
     public function setEstActif(bool $estActif): void { $this->estActif = $estActif; }
 
-    public function getDateCreation(): string { return $this->dateCreation; }
-    public function setDateCreation(string $dateCreation): void { $this->dateCreation = $dateCreation; }
+    public function getDateCreation(): ?string { return $this->dateCreation; }
+    public function setDateCreation(?string $dateCreation): void { $this->dateCreation = $dateCreation; }
 }
