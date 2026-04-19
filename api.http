@@ -54,3 +54,54 @@ Content-Type: application/json
 ### Supprimer un site (ex: ID = 1)
 DELETE http://localhost:8000/sites/1
 Accept: application/json
+
+###
+
+# ============================================================
+# TERRAINS
+# ============================================================
+
+### Récupérer tous les terrains actifs
+GET http://localhost:8000/terrains
+Accept: application/json
+
+###
+
+### Récupérer un terrain par son ID (ex: ID = 1)
+GET http://localhost:8000/terrains/1
+Accept: application/json
+
+###
+
+### Récupérer tous les terrains d'un site (ex: site ID = 1)
+GET http://localhost:8000/sites/1/terrains
+Accept: application/json
+
+###
+
+### Créer un nouveau terrain
+POST http://localhost:8000/terrains
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "num_terrain": 1,
+    "libelle": "Terrain Central"
+}
+
+###
+
+### Mettre à jour un terrain (ex: ID = 1)
+PUT http://localhost:8000/terrains/1
+Content-Type: application/json
+
+{
+    "libelle": "Terrain Principal",
+    "est_actif": true
+}
+
+###
+
+### Supprimer un terrain (ex: ID = 1)
+DELETE http://localhost:8000/terrains/1
+Accept: application/json
