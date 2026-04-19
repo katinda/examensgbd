@@ -10,20 +10,17 @@ require_once __DIR__ . '/../repositories/SiteRepository.php';
 class SiteService {
 
     // Le repository est reçu en paramètre (injection de dépendance).
-    // Le service ne crée jamais lui-même le repository.
     public function __construct(private SiteRepository $siteRepository) {}
 
 
     // Retourne tous les sites actifs.
-    // On ne retourne que les sites avec Est_Actif = true, pas tous les sites.
     public function getAllSites(): array {
         $tous = $this->siteRepository->findAll();
         return array_filter($tous, fn($site) => $site->isEstActif());
     }
 
 
-    // Retourne un site par son ID.
-    // Retourne null si le site n'existe pas ou s'il est inactif.
+    // Retourne un site par son ID, ou null s'il est inactif ou inexistant.
     public function getSiteById(int $id): ?Site {
         $site = $this->siteRepository->findById($id);
 
@@ -32,5 +29,50 @@ class SiteService {
         }
 
         return $site;
+    }
+
+
+    // Crée un nouveau site à partir des données reçues et retourne son ID.
+    public function createSite(array $data): int {
+        $site = new Site();
+        $site->setNom($data['nom']);
+        $site->setAdresse($data['adresse'] ?? null);
+        $site->setVille($data['ville'] ?? null);
+        $site->setCodePostal($data['code_postal'] ?? null);
+        $site->setEstActif(true);
+
+        return $this->siteRepository->insert($site);
+    }
+
+
+    // Met à jour un site existant. Retourne false si le site n'existe pas.
+    public function updateSite(int $id, array $data): bool {
+        $site = $this->siteRepository->findById($id);
+
+        if ($site === null) {
+            return false;
+        }
+
+        if (isset($data['nom']))         $site->setNom($data['nom']);
+        if (isset($data['adresse']))     $site->setAdresse($data['adresse']);
+        if (isset($data['ville']))       $site->setVille($data['ville']);
+        if (isset($data['code_postal'])) $site->setCodePostal($data['code_postal']);
+        if (isset($data['est_actif']))   $site->setEstActif((bool) $data['est_actif']);
+
+        $this->siteRepository->update($site);
+        return true;
+    }
+
+
+    // Supprime un site par son ID. Retourne false si le site n'existe pas.
+    public function deleteSite(int $id): bool {
+        $site = $this->siteRepository->findById($id);
+
+        if ($site === null) {
+            return false;
+        }
+
+        $this->siteRepository->delete($id);
+        return true;
     }
 }
