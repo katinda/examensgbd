@@ -15,26 +15,11 @@ class TerrainServiceTest extends TestCase {
 
     // Crée un faux terrain pour les tests
     private function creerTerrain(int $id, int $siteId, int $num, bool $actif): Terrain {
-        $t = new Terrain();
-        $t->setTerrainId($id);
-        $t->setSiteId($siteId);
-        $t->setNumTerrain($num);
-        $t->setLibelle("Terrain $num");
-        $t->setEstActif($actif);
-        return $t;
+        return new Terrain($id, $siteId, $num, "Terrain $num", $actif);
     }
 
-    // Crée un faux site pour les tests
     private function creerSite(int $id): Site {
-        $s = new Site();
-        $s->setSiteId($id);
-        $s->setNom("Site $id");
-        $s->setAdresse(null);
-        $s->setVille(null);
-        $s->setCodePostal(null);
-        $s->setEstActif(true);
-        $s->setDateCreation('2024-01-01 00:00:00');
-        return $s;
+        return new Site($id, "Site $id", null, null, null, true, '2024-01-01 00:00:00');
     }
 
 

@@ -63,11 +63,13 @@ class TerrainService {
             return 'site_introuvable'; // le controller traduira ça en 404
         }
 
-        $terrain = new Terrain();
-        $terrain->setSiteId((int) $data['site_id']);
-        $terrain->setNumTerrain((int) $data['num_terrain']);
-        $terrain->setLibelle($data['libelle'] ?? null);
-        $terrain->setEstActif(true);
+        $terrain = new Terrain(
+            null,
+            (int) $data['site_id'],
+            (int) $data['num_terrain'],
+            $data['libelle'] ?? null,
+            true
+        );
 
         try {
             return $this->terrainRepository->insert($terrain);

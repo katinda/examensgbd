@@ -90,14 +90,14 @@ class SiteRepository {
     // C'est comme remplir une fiche d'identité avec les données venant de MySQL.
     // Exemple : $row['Nom'] = "Club Paris" → $site->setNom("Club Paris")
     private function hydrateOne(array $row): Site {
-        $site = new Site();
-        $site->setSiteId((int) $row['Site_ID']);
-        $site->setNom($row['Nom']);
-        $site->setAdresse($row['Adresse']);
-        $site->setVille($row['Ville']);
-        $site->setCodePostal($row['Code_Postal']);
-        $site->setEstActif((bool) $row['Est_Actif']);
-        $site->setDateCreation($row['Date_Creation']);
-        return $site;
+        return new Site(
+            (int) $row['Site_ID'],
+            $row['Nom'],
+            $row['Adresse'],
+            $row['Ville'],
+            $row['Code_Postal'],
+            (bool) $row['Est_Actif'],
+            $row['Date_Creation']
+        );
     }
 }

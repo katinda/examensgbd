@@ -14,15 +14,7 @@ class SiteServiceTest extends TestCase {
 
     // Crée un faux site pour les tests
     private function creerSite(int $id, string $nom, bool $actif): Site {
-        $site = new Site();
-        $site->setSiteId($id);
-        $site->setNom($nom);
-        $site->setAdresse(null);
-        $site->setVille(null);
-        $site->setCodePostal(null);
-        $site->setEstActif($actif);
-        $site->setDateCreation('2024-01-01 00:00:00');
-        return $site;
+        return new Site($id, $nom, null, null, null, $actif, '2024-01-01 00:00:00');
     }
 
 

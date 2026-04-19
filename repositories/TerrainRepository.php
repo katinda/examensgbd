@@ -88,12 +88,12 @@ class TerrainRepository {
     // Transforme une ligne SQL en objet Terrain
     // Exemple : $row['Libelle'] = "Terrain Central" → $terrain->setLibelle("Terrain Central")
     private function hydrateOne(array $row): Terrain {
-        $terrain = new Terrain();
-        $terrain->setTerrainId((int) $row['Terrain_ID']);
-        $terrain->setSiteId((int) $row['Site_ID']);
-        $terrain->setNumTerrain((int) $row['Num_Terrain']);
-        $terrain->setLibelle($row['Libelle']);
-        $terrain->setEstActif((bool) $row['Est_Actif']);
-        return $terrain;
+        return new Terrain(
+            (int) $row['Terrain_ID'],
+            (int) $row['Site_ID'],
+            (int) $row['Num_Terrain'],
+            $row['Libelle'],
+            (bool) $row['Est_Actif']
+        );
     }
 }

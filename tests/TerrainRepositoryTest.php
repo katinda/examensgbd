@@ -79,11 +79,7 @@ class TerrainRepositoryTest extends TestCase {
 
     // Vérifie que insert() ajoute bien un terrain en base
     public function testInsertAjouteUnTerrain(): void {
-        $terrain = new Terrain();
-        $terrain->setSiteId(1);
-        $terrain->setNumTerrain(3);
-        $terrain->setLibelle('Terrain Nord');
-        $terrain->setEstActif(true);
+        $terrain = new Terrain(null, 1, 3, 'Terrain Nord', true);
 
         $id = $this->repository->insert($terrain);
 

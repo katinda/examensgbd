@@ -34,12 +34,14 @@ class SiteService {
 
     // Crée un nouveau site à partir des données reçues et retourne son ID.
     public function createSite(array $data): int {
-        $site = new Site();
-        $site->setNom($data['nom']);
-        $site->setAdresse($data['adresse'] ?? null);
-        $site->setVille($data['ville'] ?? null);
-        $site->setCodePostal($data['code_postal'] ?? null);
-        $site->setEstActif(true);
+        $site = new Site(
+            null,
+            $data['nom'],
+            $data['adresse'] ?? null,
+            $data['ville'] ?? null,
+            $data['code_postal'] ?? null,
+            true
+        );
 
         return $this->siteRepository->insert($site);
     }

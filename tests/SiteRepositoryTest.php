@@ -71,12 +71,7 @@ class SiteRepositoryTest extends TestCase {
 
     // Vérifie que insert() ajoute bien un nouveau site en base
     public function testInsertAjouteUnSite(): void {
-        $site = new Site();
-        $site->setNom('Club Bordeaux');
-        $site->setAdresse('1 avenue du Vin');
-        $site->setVille('Bordeaux');
-        $site->setCodePostal('33000');
-        $site->setEstActif(true);
+        $site = new Site(null, 'Club Bordeaux', '1 avenue du Vin', 'Bordeaux', '33000', true);
 
         $id = $this->repository->insert($site);
 
