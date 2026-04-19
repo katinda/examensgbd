@@ -50,6 +50,22 @@ Base de données MySQL
 
 ---
 
+## Lancer le serveur PHP
+
+```bash
+php -S localhost:8000
+```
+
+---
+
+## Lancer les tests unitaires
+
+```bash
+./vendor/bin/phpunit tests/
+```
+
+---
+
 ## Importer la base de données
 
 ```bash
