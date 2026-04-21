@@ -8,12 +8,15 @@ require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/repositories/SiteRepository.php';
 require_once __DIR__ . '/repositories/TerrainRepository.php';
 require_once __DIR__ . '/repositories/MembreRepository.php';
+require_once __DIR__ . '/repositories/ReservationRepository.php';
 require_once __DIR__ . '/services/SiteService.php';
 require_once __DIR__ . '/services/TerrainService.php';
 require_once __DIR__ . '/services/MembreService.php';
+require_once __DIR__ . '/services/ReservationService.php';
 require_once __DIR__ . '/controllers/SiteController.php';
 require_once __DIR__ . '/controllers/TerrainController.php';
 require_once __DIR__ . '/controllers/MembreController.php';
+require_once __DIR__ . '/controllers/ReservationController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -26,9 +29,12 @@ $membreRepo        = new MembreRepository($pdo);
 $siteService       = new SiteService($siteRepo);
 $terrainService    = new TerrainService($terrainRepo, $siteRepo);
 $membreService     = new MembreService($membreRepo, $siteRepo);
-$siteController    = new SiteController($siteService);
-$terrainController = new TerrainController($terrainService);
-$membreController  = new MembreController($membreService);
+$reservationRepo       = new ReservationRepository($pdo);
+$reservationService    = new ReservationService($reservationRepo, $terrainRepo, $membreRepo);
+$reservationController = new ReservationController($reservationService);
+$siteController        = new SiteController($siteService);
+$terrainController     = new TerrainController($terrainService);
+$membreController      = new MembreController($membreService);
 
 // --- Routeur ---
 
@@ -75,6 +81,22 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /terrains/{id} → supprime un terrain
 } elseif ($method === 'DELETE' && preg_match('#^/terrains/(\d+)$#', $uri, $matches)) {
     $terrainController->delete((int) $matches[1]);
+
+// GET /api/reservations/{id} → retourne une réservation par son ID
+} elseif ($method === 'GET' && preg_match('#^/api/reservations/(\d+)$#', $uri, $matches)) {
+    $reservationController->getById((int) $matches[1]);
+
+// GET /api/membres/{id}/reservations → retourne les réservations d'un membre
+} elseif ($method === 'GET' && preg_match('#^/api/membres/(\d+)/reservations$#', $uri, $matches)) {
+    $reservationController->getByMembre((int) $matches[1]);
+
+// GET /api/terrains/{id}/reservations?date=YYYY-MM-DD → retourne les réservations d'un terrain pour une date
+} elseif ($method === 'GET' && preg_match('#^/api/terrains/(\d+)/reservations$#', $uri, $matches)) {
+    $reservationController->getByTerrainAndDate((int) $matches[1]);
+
+// POST /api/reservations → crée une nouvelle réservation
+} elseif ($method === 'POST' && $uri === '/api/reservations') {
+    $reservationController->create();
 
 // GET /api/membres ou /api/membres?categorie=G
 } elseif ($method === 'GET' && $uri === '/api/membres') {
