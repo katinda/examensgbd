@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../repositories/ReservationRepository.php';
 require_once __DIR__ . '/../repositories/TerrainRepository.php';
 require_once __DIR__ . '/../repositories/MembreRepository.php';
+require_once __DIR__ . '/../repositories/InscriptionRepository.php';
 
 // Le service contient la logique métier des réservations.
 // Version minimale : vérifie terrain + organisateur, calcule Heure_Fin, insère.
@@ -13,7 +14,9 @@ class ReservationService {
     public function __construct(
         private ReservationRepository $reservationRepository,
         private TerrainRepository     $terrainRepository,
-        private MembreRepository      $membreRepository
+        private MembreRepository      $membreRepository,
+        private InscriptionRepository $inscriptionRepository,
+        private PDO                   $pdo
     ) {}
 
 
@@ -85,7 +88,21 @@ class ReservationService {
             strtoupper($data['type'] ?? 'PRIVE')
         );
 
-        return $this->reservationRepository->insert($reservation);
+        // Transaction : si l'inscription de l'organisateur échoue, on annule aussi la réservation
+        $this->pdo->beginTransaction();
+        try {
+            $reservationId = $this->reservationRepository->insert($reservation);
+
+            // Inscription automatique de l'organisateur (joueur 1 sur 4, Est_Organisateur = true)
+            $inscription = new Inscription(null, $reservationId, (int) $data['organisateur_id'], true);
+            $this->inscriptionRepository->insert($inscription);
+
+            $this->pdo->commit();
+            return $reservationId;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
 
