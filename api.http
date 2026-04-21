@@ -1,0 +1,81 @@
+# ============================================================
+# RESERVATIONS
+# ============================================================
+
+### Récupérer une réservation par son ID (ex: ID = 1)
+GET http://localhost:8000/api/reservations/1
+Accept: application/json
+
+###
+
+### Récupérer une réservation inexistante (doit retourner 404)
+GET http://localhost:8000/api/reservations/999
+Accept: application/json
+
+###
+
+### Récupérer les réservations d'un membre (ex: ID = 1)
+GET http://localhost:8000/api/membres/1/reservations
+Accept: application/json
+
+###
+
+### Récupérer les réservations d'un terrain pour une date (ex: terrain ID = 1)
+GET http://localhost:8000/api/terrains/1/reservations?date=2026-05-10
+Accept: application/json
+
+###
+
+### Créer une réservation privée
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 1,
+    "organisateur_id": 1,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PRIVE"
+}
+
+###
+
+### Tester erreur : terrain inexistant (doit retourner 404)
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 999,
+    "organisateur_id": 1,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PRIVE"
+}
+
+###
+
+### Tester erreur : organisateur inexistant (doit retourner 404)
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 1,
+    "organisateur_id": 999,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PRIVE"
+}
+
+###
+
+### Tester erreur : créneau déjà pris (doit retourner 409)
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 1,
+    "organisateur_id": 1,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PUBLIC"
+}
