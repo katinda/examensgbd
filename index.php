@@ -19,6 +19,7 @@ require_once __DIR__ . '/controllers/SiteController.php';
 require_once __DIR__ . '/controllers/TerrainController.php';
 require_once __DIR__ . '/controllers/MembreController.php';
 require_once __DIR__ . '/controllers/ReservationController.php';
+require_once __DIR__ . '/controllers/InscriptionController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -36,6 +37,7 @@ $inscriptionRepo       = new InscriptionRepository($pdo);
 $reservationService    = new ReservationService($reservationRepo, $terrainRepo, $membreRepo, $inscriptionRepo, $pdo);
 $inscriptionService    = new InscriptionService($inscriptionRepo, $reservationRepo, $membreRepo);
 $reservationController = new ReservationController($reservationService);
+$inscriptionController = new InscriptionController($inscriptionService);
 $siteController        = new SiteController($siteService);
 $terrainController     = new TerrainController($terrainService);
 $membreController      = new MembreController($membreService);
@@ -85,6 +87,18 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /terrains/{id} → supprime un terrain
 } elseif ($method === 'DELETE' && preg_match('#^/terrains/(\d+)$#', $uri, $matches)) {
     $terrainController->delete((int) $matches[1]);
+
+// GET /api/reservations/{id}/inscriptions → retourne les joueurs inscrits à une réservation
+} elseif ($method === 'GET' && preg_match('#^/api/reservations/(\d+)/inscriptions$#', $uri, $matches)) {
+    $inscriptionController->getByReservation((int) $matches[1]);
+
+// POST /api/reservations/{id}/inscriptions → ajoute un joueur à la réservation
+} elseif ($method === 'POST' && preg_match('#^/api/reservations/(\d+)/inscriptions$#', $uri, $matches)) {
+    $inscriptionController->addJoueur((int) $matches[1]);
+
+// DELETE /api/reservations/{id}/inscriptions/{membreId} → retire un joueur de la réservation
+} elseif ($method === 'DELETE' && preg_match('#^/api/reservations/(\d+)/inscriptions/(\d+)$#', $uri, $matches)) {
+    $inscriptionController->removeJoueur((int) $matches[1], (int) $matches[2]);
 
 // GET /api/reservations/{id} → retourne une réservation par son ID
 } elseif ($method === 'GET' && preg_match('#^/api/reservations/(\d+)$#', $uri, $matches)) {

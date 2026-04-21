@@ -304,3 +304,65 @@ Content-Type: application/json
     "heure_debut": "10:00:00",
     "type": "PUBLIC"
 }
+
+###
+
+# ============================================================
+# INSCRIPTIONS
+# ============================================================
+
+### Lister les joueurs inscrits à une réservation (ex: réservation ID = 1)
+GET http://localhost:8000/api/reservations/1/inscriptions
+Accept: application/json
+
+###
+
+### Ajouter un joueur à une réservation (ex: réservation ID = 1, membre ID = 2)
+POST http://localhost:8000/api/reservations/1/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 2
+}
+
+###
+
+### Tester erreur : réservation inexistante (doit retourner 404)
+POST http://localhost:8000/api/reservations/999/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 1
+}
+
+###
+
+### Tester erreur : membre inexistant (doit retourner 404)
+POST http://localhost:8000/api/reservations/1/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 999
+}
+
+###
+
+### Tester erreur : joueur déjà inscrit (doit retourner 409)
+POST http://localhost:8000/api/reservations/1/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 1
+}
+
+###
+
+### Retirer un joueur d'une réservation (ex: réservation ID = 1, membre ID = 2)
+DELETE http://localhost:8000/api/reservations/1/inscriptions/2
+Accept: application/json
+
+###
+
+### Tester erreur : joueur non inscrit (doit retourner 404)
+DELETE http://localhost:8000/api/reservations/1/inscriptions/999
+Accept: application/json
