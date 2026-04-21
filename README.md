@@ -88,4 +88,3 @@ mysql -u root -p < padel_manager.sql
 | Inscriptions | Les joueurs inscrits à une réservation |
 | Paiements | Les paiements effectués par les joueurs |
 | Penalites | Les pénalités appliquées aux membres |
-# Padel Manager
