@@ -1,0 +1,467 @@
+# ============================================================
+# PADEL MANAGER - Tests des endpoints API
+# Pour utiliser ce fichier : installer l'extension REST Client
+# sur VS Code, puis cliquer sur "Send Request" au-dessus de chaque requête
+# ============================================================
+
+# Le serveur PHP doit être lancé avant :
+# php -S localhost:8000
+
+
+### Récupérer tous les sites actifs
+GET http://localhost:8000/sites
+Accept: application/json
+
+###
+
+### Récupérer un site par son ID (ex: ID = 1)
+GET http://localhost:8000/sites/1
+Accept: application/json
+
+###
+
+### Récupérer un site qui n'existe pas (doit retourner une erreur 404)
+GET http://localhost:8000/sites/999
+Accept: application/json
+
+###
+
+### Créer un nouveau site
+POST http://localhost:8000/sites
+Content-Type: application/json
+
+{
+    "nom": "Club Bordeaux",
+    "adresse": "1 avenue du Vin",
+    "ville": "Bordeaux",
+    "code_postal": "33000"
+}
+
+###
+
+### Mettre à jour un site existant (ex: ID = 1)
+PUT http://localhost:8000/sites/1
+Content-Type: application/json
+
+{
+    "nom": "Club Paris Modifié",
+    "ville": "Paris",
+    "code_postal": "75002"
+}
+
+###
+
+### Supprimer un site (ex: ID = 1)
+DELETE http://localhost:8000/sites/1
+Accept: application/json
+
+###
+
+# ============================================================
+# TERRAINS
+# ============================================================
+
+### Récupérer tous les terrains actifs
+GET http://localhost:8000/terrains
+Accept: application/json
+
+###
+
+### Récupérer un terrain par son ID (ex: ID = 1)
+GET http://localhost:8000/terrains/1
+Accept: application/json
+
+###
+
+### Récupérer tous les terrains d'un site (ex: site ID = 1)
+GET http://localhost:8000/sites/1/terrains
+Accept: application/json
+
+###
+
+### Créer un nouveau terrain
+POST http://localhost:8000/terrains
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "num_terrain": 1,
+    "libelle": "Terrain Central"
+}
+
+###
+
+### Mettre à jour un terrain (ex: ID = 1)
+PUT http://localhost:8000/terrains/1
+Content-Type: application/json
+
+{
+    "libelle": "Terrain Principal",
+    "est_actif": true
+}
+
+###
+
+### Supprimer un terrain (ex: ID = 1)
+DELETE http://localhost:8000/terrains/1
+Accept: application/json
+
+###
+
+# ============================================================
+# MEMBRES
+# ============================================================
+
+### Récupérer tous les membres actifs
+GET http://localhost:8000/api/membres
+Accept: application/json
+
+###
+
+### Récupérer les membres d'une catégorie (G, S ou L)
+GET http://localhost:8000/api/membres?categorie=G
+Accept: application/json
+
+###
+
+### Récupérer un membre par son ID (ex: ID = 1)
+GET http://localhost:8000/api/membres/1
+Accept: application/json
+
+###
+
+### Récupérer un membre par son matricule
+GET http://localhost:8000/api/membres/matricule/G0001
+Accept: application/json
+
+###
+
+### Créer un membre Global (catégorie G — pas de site_id)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "G0001",
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "email": "jean.dupont@email.com",
+    "telephone": "0601020304",
+    "categorie": "G"
+}
+
+###
+
+### Créer un membre Site (catégorie S — site_id obligatoire)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "S00001",
+    "nom": "Martin",
+    "prenom": "Alice",
+    "email": "alice.martin@email.com",
+    "categorie": "S",
+    "site_id": 1
+}
+
+###
+
+### Créer un membre Libre (catégorie L — pas de site_id)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "L00001",
+    "nom": "Bernard",
+    "prenom": "Paul",
+    "categorie": "L"
+}
+
+###
+
+### Tester erreur : matricule invalide (S avec préfixe G)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "G0001",
+    "nom": "Test",
+    "prenom": "Erreur",
+    "categorie": "S",
+    "site_id": 1
+}
+
+###
+
+### Tester erreur : catégorie S sans site_id (doit retourner 400)
+POST http://localhost:8000/api/membres
+Content-Type: application/json
+
+{
+    "matricule": "S00002",
+    "nom": "Test",
+    "prenom": "Erreur",
+    "categorie": "S"
+}
+
+###
+
+### Mettre à jour un membre (ex: ID = 1)
+PUT http://localhost:8000/api/membres/1
+Content-Type: application/json
+
+{
+    "email": "nouveau.email@example.com",
+    "telephone": "0699887766"
+}
+
+###
+
+### Supprimer (désactiver) un membre (ex: ID = 1)
+DELETE http://localhost:8000/api/membres/1
+Accept: application/json
+
+###
+
+# ============================================================
+# RESERVATIONS
+# ============================================================
+
+### Récupérer une réservation par son ID (ex: ID = 1)
+GET http://localhost:8000/api/reservations/1
+Accept: application/json
+
+###
+
+### Récupérer une réservation inexistante (doit retourner 404)
+GET http://localhost:8000/api/reservations/999
+Accept: application/json
+
+###
+
+### Récupérer les réservations d'un membre (ex: ID = 1)
+GET http://localhost:8000/api/membres/1/reservations
+Accept: application/json
+
+###
+
+### Récupérer les réservations d'un terrain pour une date (ex: terrain ID = 1)
+GET http://localhost:8000/api/terrains/1/reservations?date=2026-05-10
+Accept: application/json
+
+###
+
+### Créer une réservation privée
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 1,
+    "organisateur_id": 1,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PRIVE"
+}
+
+###
+
+### Tester erreur : terrain inexistant (doit retourner 404)
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 999,
+    "organisateur_id": 1,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PRIVE"
+}
+
+###
+
+### Tester erreur : organisateur inexistant (doit retourner 404)
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 1,
+    "organisateur_id": 999,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PRIVE"
+}
+
+###
+
+### Tester erreur : créneau déjà pris (doit retourner 409)
+POST http://localhost:8000/api/reservations
+Content-Type: application/json
+
+{
+    "terrain_id": 1,
+    "organisateur_id": 1,
+    "date_match": "2026-05-10",
+    "heure_debut": "10:00:00",
+    "type": "PUBLIC"
+}
+
+###
+
+# ============================================================
+# INSCRIPTIONS
+# ============================================================
+
+### Lister les joueurs inscrits à une réservation (ex: réservation ID = 1)
+GET http://localhost:8000/api/reservations/1/inscriptions
+Accept: application/json
+
+###
+
+### Ajouter un joueur à une réservation (ex: réservation ID = 1, membre ID = 2)
+POST http://localhost:8000/api/reservations/1/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 2
+}
+
+###
+
+### Tester erreur : réservation inexistante (doit retourner 404)
+POST http://localhost:8000/api/reservations/999/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 1
+}
+
+###
+
+### Tester erreur : membre inexistant (doit retourner 404)
+POST http://localhost:8000/api/reservations/1/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 999
+}
+
+###
+
+### Tester erreur : joueur déjà inscrit (doit retourner 409)
+POST http://localhost:8000/api/reservations/1/inscriptions
+Content-Type: application/json
+
+{
+    "membre_id": 1
+}
+
+###
+
+### Retirer un joueur d'une réservation (ex: réservation ID = 1, membre ID = 2)
+DELETE http://localhost:8000/api/reservations/1/inscriptions/2
+Accept: application/json
+
+###
+
+### Tester erreur : joueur non inscrit (doit retourner 404)
+DELETE http://localhost:8000/api/reservations/1/inscriptions/999
+Accept: application/json
+
+###
+
+# ============================================================
+# PAIEMENTS
+# ============================================================
+
+### Enregistrer le paiement d'une inscription (ex: inscription ID = 1)
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "CARTE"
+}
+
+###
+
+### Enregistrer un paiement sans méthode (méthode optionnelle)
+POST http://localhost:8000/api/inscriptions/2/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00
+}
+
+###
+
+### Tester erreur : inscription inexistante (doit retourner 404)
+POST http://localhost:8000/api/inscriptions/999/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "CARTE"
+}
+
+###
+
+### Tester erreur : paiement déjà existant (doit retourner 409)
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "VIREMENT"
+}
+
+###
+
+### Tester erreur : montant invalide (doit retourner 400)
+POST http://localhost:8000/api/inscriptions/2/paiement
+Content-Type: application/json
+
+{
+    "montant": 10.00,
+    "methode": "CARTE"
+}
+
+###
+
+### Tester erreur : méthode invalide (doit retourner 400)
+POST http://localhost:8000/api/inscriptions/2/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "PAYPAL"
+}
+
+###
+
+### Consulter le paiement d'une inscription (ex: inscription ID = 1)
+GET http://localhost:8000/api/inscriptions/1/paiement
+Accept: application/json
+
+###
+
+### Tester erreur : inscription sans paiement (doit retourner 404)
+GET http://localhost:8000/api/inscriptions/3/paiement
+Accept: application/json
+
+###
+
+### Annuler un paiement (ex: paiement ID = 1)
+DELETE http://localhost:8000/api/paiements/1
+Accept: application/json
+
+###
+
+### Tester erreur : paiement inexistant (doit retourner 404)
+DELETE http://localhost:8000/api/paiements/999
+Accept: application/json
+
+###
+
+### Tester erreur : paiement déjà annulé (doit retourner 409)
+DELETE http://localhost:8000/api/paiements/1
+Accept: application/json
