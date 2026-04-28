@@ -366,3 +366,108 @@ Accept: application/json
 ### Tester erreur : joueur non inscrit (doit retourner 404)
 DELETE http://localhost:8000/api/reservations/1/inscriptions/999
 Accept: application/json
+
+###
+
+# ============================================================
+# HORAIRES SITES
+# ============================================================
+
+### Récupérer tous les horaires
+GET http://localhost:8000/api/horaires
+Accept: application/json
+
+###
+
+### Récupérer les horaires d'un site (ex: site ID = 1)
+GET http://localhost:8000/api/horaires?site_id=1
+Accept: application/json
+
+###
+
+### Récupérer l'horaire d'un site pour une année (ex: site ID = 1, année = 2026)
+GET http://localhost:8000/api/horaires?site_id=1&annee=2026
+Accept: application/json
+
+###
+
+### Récupérer un horaire par son ID (ex: ID = 1)
+GET http://localhost:8000/api/horaires/1
+Accept: application/json
+
+###
+
+### Récupérer un horaire inexistant (doit retourner 404)
+GET http://localhost:8000/api/horaires/999
+Accept: application/json
+
+###
+
+### Créer un nouvel horaire
+POST http://localhost:8000/api/horaires
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "annee": 2026,
+    "heure_debut": "08:00:00",
+    "heure_fin": "22:00:00"
+}
+
+###
+
+### Tester erreur : année invalide (doit retourner 400)
+POST http://localhost:8000/api/horaires
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "annee": 1999,
+    "heure_debut": "08:00:00",
+    "heure_fin": "22:00:00"
+}
+
+###
+
+### Tester erreur : heures invalides (heure_debut >= heure_fin, doit retourner 400)
+POST http://localhost:8000/api/horaires
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "annee": 2026,
+    "heure_debut": "22:00:00",
+    "heure_fin": "08:00:00"
+}
+
+###
+
+### Tester erreur : doublon site + année (doit retourner 409)
+POST http://localhost:8000/api/horaires
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "annee": 2026,
+    "heure_debut": "09:00:00",
+    "heure_fin": "21:00:00"
+}
+
+###
+
+### Mettre à jour un horaire (ex: ID = 1)
+PUT http://localhost:8000/api/horaires/1
+Content-Type: application/json
+
+{
+    "heure_debut": "09:00:00",
+    "heure_fin": "21:00:00"
+}
+
+###
+
+### Supprimer un horaire (ex: ID = 1)
+DELETE http://localhost:8000/api/horaires/1
+Accept: application/json
+
+###
