@@ -471,3 +471,91 @@ DELETE http://localhost:8000/api/horaires/1
 Accept: application/json
 
 ###
+
+# ============================================================
+# FERMETURES
+# ============================================================
+
+### Récupérer toutes les fermetures
+GET http://localhost:8000/api/fermetures
+Accept: application/json
+
+###
+
+### Récupérer les fermetures d'un site (ex: site ID = 1)
+GET http://localhost:8000/api/fermetures?site_id=1
+Accept: application/json
+
+###
+
+### Récupérer uniquement les fermetures globales
+GET http://localhost:8000/api/fermetures?globales=1
+Accept: application/json
+
+###
+
+### Récupérer une fermeture par son ID (ex: ID = 1)
+GET http://localhost:8000/api/fermetures/1
+Accept: application/json
+
+###
+
+### Récupérer une fermeture inexistante (doit retourner 404)
+GET http://localhost:8000/api/fermetures/999
+Accept: application/json
+
+###
+
+### Créer une fermeture locale (site ID = 1)
+POST http://localhost:8000/api/fermetures
+Content-Type: application/json
+
+{
+    "site_id": 1,
+    "date_debut": "2026-08-01",
+    "date_fin": "2026-08-07",
+    "raison": "Travaux estivaux"
+}
+
+###
+
+### Créer une fermeture globale (tous les sites)
+POST http://localhost:8000/api/fermetures
+Content-Type: application/json
+
+{
+    "date_debut": "2026-12-25",
+    "date_fin": "2026-12-25",
+    "raison": "Noël"
+}
+
+###
+
+### Tester erreur : dates invalides (date_debut > date_fin, doit retourner 400)
+POST http://localhost:8000/api/fermetures
+Content-Type: application/json
+
+{
+    "date_debut": "2026-08-10",
+    "date_fin": "2026-08-01",
+    "raison": "Erreur de dates"
+}
+
+###
+
+### Mettre à jour une fermeture (ex: ID = 1)
+PUT http://localhost:8000/api/fermetures/1
+Content-Type: application/json
+
+{
+    "date_fin": "2026-08-14",
+    "raison": "Travaux prolongés"
+}
+
+###
+
+### Supprimer une fermeture (ex: ID = 1)
+DELETE http://localhost:8000/api/fermetures/1
+Accept: application/json
+
+###
