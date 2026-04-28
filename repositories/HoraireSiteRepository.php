@@ -72,6 +72,24 @@ class HoraireSiteRepository {
     }
 
 
+    // Met à jour un horaire existant
+    public function update(HoraireSite $horaire): void {
+        $stmt = $this->pdo->prepare("
+            UPDATE Horaires_Sites
+            SET Site_ID = :siteId, Annee = :annee,
+                Heure_Debut = :heureDebut, Heure_Fin = :heureFin
+            WHERE Horaire_ID = :id
+        ");
+        $stmt->execute([
+            ':id'         => $horaire->getHoraireId(),
+            ':siteId'     => $horaire->getSiteId(),
+            ':annee'      => $horaire->getAnnee(),
+            ':heureDebut' => $horaire->getHeureDebut(),
+            ':heureFin'   => $horaire->getHeureFin(),
+        ]);
+    }
+
+
     // Transforme plusieurs lignes SQL en tableau d'objets HoraireSite
     private function hydrate(array $rows): array {
         return array_map(fn($row) => $this->hydrateOne($row), $rows);
