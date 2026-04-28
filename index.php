@@ -11,6 +11,7 @@ require_once __DIR__ . '/repositories/MembreRepository.php';
 require_once __DIR__ . '/repositories/ReservationRepository.php';
 require_once __DIR__ . '/repositories/InscriptionRepository.php';
 require_once __DIR__ . '/repositories/HoraireSiteRepository.php';
+require_once __DIR__ . '/repositories/FermetureRepository.php';
 require_once __DIR__ . '/services/SiteService.php';
 require_once __DIR__ . '/services/TerrainService.php';
 require_once __DIR__ . '/services/MembreService.php';
@@ -23,6 +24,8 @@ require_once __DIR__ . '/controllers/ReservationController.php';
 require_once __DIR__ . '/controllers/InscriptionController.php';
 require_once __DIR__ . '/services/HoraireSiteService.php';
 require_once __DIR__ . '/controllers/HoraireSiteController.php';
+require_once __DIR__ . '/services/FermetureService.php';
+require_once __DIR__ . '/controllers/FermetureController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -47,6 +50,9 @@ $membreController      = new MembreController($membreService);
 $horaireRepo           = new HoraireSiteRepository($pdo);
 $horaireService        = new HoraireSiteService($horaireRepo);
 $horaireController     = new HoraireSiteController($horaireService);
+$fermetureRepo         = new FermetureRepository($pdo);
+$fermetureService      = new FermetureService($fermetureRepo);
+$fermetureController   = new FermetureController($fermetureService);
 
 // --- Routeur ---
 
@@ -173,6 +179,26 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /api/horaires/{id}
 } elseif ($method === 'DELETE' && preg_match('#^/api/horaires/(\d+)$#', $uri, $matches)) {
     $horaireController->delete((int) $matches[1]);
+
+// GET /api/fermetures, GET /api/fermetures?site_id={id}, GET /api/fermetures?globales=1
+} elseif ($method === 'GET' && $uri === '/api/fermetures') {
+    $fermetureController->getAll();
+
+// GET /api/fermetures/{id}
+} elseif ($method === 'GET' && preg_match('#^/api/fermetures/(\d+)$#', $uri, $matches)) {
+    $fermetureController->getById((int) $matches[1]);
+
+// POST /api/fermetures
+} elseif ($method === 'POST' && $uri === '/api/fermetures') {
+    $fermetureController->create();
+
+// PUT /api/fermetures/{id}
+} elseif ($method === 'PUT' && preg_match('#^/api/fermetures/(\d+)$#', $uri, $matches)) {
+    $fermetureController->update((int) $matches[1]);
+
+// DELETE /api/fermetures/{id}
+} elseif ($method === 'DELETE' && preg_match('#^/api/fermetures/(\d+)$#', $uri, $matches)) {
+    $fermetureController->delete((int) $matches[1]);
 
 // URL inconnue → erreur 404
 } else {
