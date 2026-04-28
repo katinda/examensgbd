@@ -10,6 +10,7 @@ require_once __DIR__ . '/repositories/TerrainRepository.php';
 require_once __DIR__ . '/repositories/MembreRepository.php';
 require_once __DIR__ . '/repositories/ReservationRepository.php';
 require_once __DIR__ . '/repositories/InscriptionRepository.php';
+require_once __DIR__ . '/repositories/HoraireSiteRepository.php';
 require_once __DIR__ . '/services/SiteService.php';
 require_once __DIR__ . '/services/TerrainService.php';
 require_once __DIR__ . '/services/MembreService.php';
@@ -20,6 +21,8 @@ require_once __DIR__ . '/controllers/TerrainController.php';
 require_once __DIR__ . '/controllers/MembreController.php';
 require_once __DIR__ . '/controllers/ReservationController.php';
 require_once __DIR__ . '/controllers/InscriptionController.php';
+require_once __DIR__ . '/services/HoraireSiteService.php';
+require_once __DIR__ . '/controllers/HoraireSiteController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -41,6 +44,9 @@ $inscriptionController = new InscriptionController($inscriptionService);
 $siteController        = new SiteController($siteService);
 $terrainController     = new TerrainController($terrainService);
 $membreController      = new MembreController($membreService);
+$horaireRepo           = new HoraireSiteRepository($pdo);
+$horaireService        = new HoraireSiteService($horaireRepo);
+$horaireController     = new HoraireSiteController($horaireService);
 
 // --- Routeur ---
 
@@ -139,6 +145,34 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /api/membres/{id}
 } elseif ($method === 'DELETE' && preg_match('#^/api/membres/(\d+)$#', $uri, $matches)) {
     $membreController->delete((int) $matches[1]);
+
+// GET /api/horaires, GET /api/horaires?site_id={id}, GET /api/horaires?site_id={id}&annee={annee}
+} elseif ($method === 'GET' && $uri === '/api/horaires') {
+    $siteId = isset($_GET['site_id']) ? (int) $_GET['site_id'] : null;
+    $annee  = isset($_GET['annee'])   ? (int) $_GET['annee']   : null;
+    if ($siteId !== null && $annee !== null) {
+        $horaireController->getBySiteAndAnnee($siteId, $annee);
+    } elseif ($siteId !== null) {
+        $horaireController->getBySiteId($siteId);
+    } else {
+        $horaireController->getAll();
+    }
+
+// GET /api/horaires/{id}
+} elseif ($method === 'GET' && preg_match('#^/api/horaires/(\d+)$#', $uri, $matches)) {
+    $horaireController->getById((int) $matches[1]);
+
+// POST /api/horaires
+} elseif ($method === 'POST' && $uri === '/api/horaires') {
+    $horaireController->create();
+
+// PUT /api/horaires/{id}
+} elseif ($method === 'PUT' && preg_match('#^/api/horaires/(\d+)$#', $uri, $matches)) {
+    $horaireController->update((int) $matches[1]);
+
+// DELETE /api/horaires/{id}
+} elseif ($method === 'DELETE' && preg_match('#^/api/horaires/(\d+)$#', $uri, $matches)) {
+    $horaireController->delete((int) $matches[1]);
 
 // URL inconnue → erreur 404
 } else {
