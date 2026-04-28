@@ -90,6 +90,13 @@ class HoraireSiteRepository {
     }
 
 
+    // Supprime un horaire par son ID
+    public function delete(int $id): void {
+        $stmt = $this->pdo->prepare("DELETE FROM Horaires_Sites WHERE Horaire_ID = :id");
+        $stmt->execute([':id' => $id]);
+    }
+
+
     // Transforme plusieurs lignes SQL en tableau d'objets HoraireSite
     private function hydrate(array $rows): array {
         return array_map(fn($row) => $this->hydrateOne($row), $rows);
