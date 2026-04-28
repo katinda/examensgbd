@@ -29,6 +29,15 @@ class HoraireSiteRepository {
     }
 
 
+    // Retourne tous les horaires d'un site (toutes années confondues)
+    // Utilisé pour la route imbriquée GET /sites/{siteId}/horaires
+    public function findBySiteId(int $siteId): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM Horaires_Sites WHERE Site_ID = :siteId");
+        $stmt->execute([':siteId' => $siteId]);
+        return $this->hydrate($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+
     // Transforme plusieurs lignes SQL en tableau d'objets HoraireSite
     private function hydrate(array $rows): array {
         return array_map(fn($row) => $this->hydrateOne($row), $rows);
