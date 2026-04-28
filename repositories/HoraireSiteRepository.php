@@ -56,6 +56,22 @@ class HoraireSiteRepository {
     }
 
 
+    // Crée un nouvel horaire en base et retourne son ID
+    public function insert(HoraireSite $horaire): int {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO Horaires_Sites (Site_ID, Annee, Heure_Debut, Heure_Fin)
+            VALUES (:siteId, :annee, :heureDebut, :heureFin)
+        ");
+        $stmt->execute([
+            ':siteId'     => $horaire->getSiteId(),
+            ':annee'      => $horaire->getAnnee(),
+            ':heureDebut' => $horaire->getHeureDebut(),
+            ':heureFin'   => $horaire->getHeureFin(),
+        ]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+
     // Transforme plusieurs lignes SQL en tableau d'objets HoraireSite
     private function hydrate(array $rows): array {
         return array_map(fn($row) => $this->hydrateOne($row), $rows);
