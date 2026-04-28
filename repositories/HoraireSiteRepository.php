@@ -38,6 +38,24 @@ class HoraireSiteRepository {
     }
 
 
+    // Retourne l'horaire d'un site pour une année donnée, ou null s'il n'existe pas.
+    // C'est la recherche la plus fréquente : pour calculer les créneaux d'une réservation,
+    // on a besoin des horaires du site pour l'année du match.
+    // La contrainte UNIQUE (Site_ID, Annee) garantit qu'on a au plus une seule ligne.
+    public function findBySiteAndAnnee(int $siteId, int $annee): ?HoraireSite {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM Horaires_Sites
+            WHERE Site_ID = :siteId AND Annee = :annee
+        ");
+        $stmt->execute([
+            ':siteId' => $siteId,
+            ':annee'  => $annee,
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $this->hydrateOne($row) : null;
+    }
+
+
     // Transforme plusieurs lignes SQL en tableau d'objets HoraireSite
     private function hydrate(array $rows): array {
         return array_map(fn($row) => $this->hydrateOne($row), $rows);
