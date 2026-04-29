@@ -26,6 +26,9 @@ require_once __DIR__ . '/services/HoraireSiteService.php';
 require_once __DIR__ . '/controllers/HoraireSiteController.php';
 require_once __DIR__ . '/services/FermetureService.php';
 require_once __DIR__ . '/controllers/FermetureController.php';
+require_once __DIR__ . '/repositories/AdministrateurRepository.php';
+require_once __DIR__ . '/services/AdministrateurService.php';
+require_once __DIR__ . '/controllers/AdministrateurController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -50,9 +53,12 @@ $membreController      = new MembreController($membreService);
 $horaireRepo           = new HoraireSiteRepository($pdo);
 $horaireService        = new HoraireSiteService($horaireRepo);
 $horaireController     = new HoraireSiteController($horaireService);
-$fermetureRepo         = new FermetureRepository($pdo);
-$fermetureService      = new FermetureService($fermetureRepo);
-$fermetureController   = new FermetureController($fermetureService);
+$fermetureRepo           = new FermetureRepository($pdo);
+$fermetureService        = new FermetureService($fermetureRepo);
+$fermetureController     = new FermetureController($fermetureService);
+$adminRepo               = new AdministrateurRepository($pdo);
+$adminService            = new AdministrateurService($adminRepo, $siteRepo);
+$adminController         = new AdministrateurController($adminService);
 
 // --- Routeur ---
 
@@ -199,6 +205,26 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /api/fermetures/{id}
 } elseif ($method === 'DELETE' && preg_match('#^/api/fermetures/(\d+)$#', $uri, $matches)) {
     $fermetureController->delete((int) $matches[1]);
+
+// GET /api/administrateurs
+} elseif ($method === 'GET' && $uri === '/api/administrateurs') {
+    $adminController->getAll();
+
+// GET /api/administrateurs/{id}
+} elseif ($method === 'GET' && preg_match('#^/api/administrateurs/(\d+)$#', $uri, $matches)) {
+    $adminController->getById((int) $matches[1]);
+
+// POST /api/administrateurs
+} elseif ($method === 'POST' && $uri === '/api/administrateurs') {
+    $adminController->create();
+
+// PUT /api/administrateurs/{id}
+} elseif ($method === 'PUT' && preg_match('#^/api/administrateurs/(\d+)$#', $uri, $matches)) {
+    $adminController->update((int) $matches[1]);
+
+// DELETE /api/administrateurs/{id}
+} elseif ($method === 'DELETE' && preg_match('#^/api/administrateurs/(\d+)$#', $uri, $matches)) {
+    $adminController->delete((int) $matches[1]);
 
 // URL inconnue → erreur 404
 } else {
