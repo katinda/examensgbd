@@ -29,6 +29,9 @@ require_once __DIR__ . '/controllers/FermetureController.php';
 require_once __DIR__ . '/repositories/AdministrateurRepository.php';
 require_once __DIR__ . '/services/AdministrateurService.php';
 require_once __DIR__ . '/controllers/AdministrateurController.php';
+require_once __DIR__ . '/repositories/PenaliteRepository.php';
+require_once __DIR__ . '/services/PenaliteService.php';
+require_once __DIR__ . '/controllers/PenaliteController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -59,6 +62,9 @@ $fermetureController     = new FermetureController($fermetureService);
 $adminRepo               = new AdministrateurRepository($pdo);
 $adminService            = new AdministrateurService($adminRepo, $siteRepo);
 $adminController         = new AdministrateurController($adminService);
+$penaliteRepo            = new PenaliteRepository($pdo);
+$penaliteService         = new PenaliteService($penaliteRepo, $membreRepo, $adminRepo);
+$penaliteController      = new PenaliteController($penaliteService);
 
 // --- Routeur ---
 
@@ -225,6 +231,26 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /api/administrateurs/{id}
 } elseif ($method === 'DELETE' && preg_match('#^/api/administrateurs/(\d+)$#', $uri, $matches)) {
     $adminController->delete((int) $matches[1]);
+
+// GET /api/penalites, GET /api/penalites?membre_id={id}, GET /api/penalites?actives=1
+} elseif ($method === 'GET' && $uri === '/api/penalites') {
+    $penaliteController->getAll();
+
+// GET /api/penalites/{id}
+} elseif ($method === 'GET' && preg_match('#^/api/penalites/(\d+)$#', $uri, $matches)) {
+    $penaliteController->getById((int) $matches[1]);
+
+// POST /api/penalites
+} elseif ($method === 'POST' && $uri === '/api/penalites') {
+    $penaliteController->create();
+
+// PATCH /api/penalites/{id}/lever
+} elseif ($method === 'PATCH' && preg_match('#^/api/penalites/(\d+)/lever$#', $uri, $matches)) {
+    $penaliteController->lever((int) $matches[1]);
+
+// DELETE /api/penalites/{id}
+} elseif ($method === 'DELETE' && preg_match('#^/api/penalites/(\d+)$#', $uri, $matches)) {
+    $penaliteController->delete((int) $matches[1]);
 
 // URL inconnue → erreur 404
 } else {
