@@ -559,3 +559,108 @@ DELETE http://localhost:8000/api/fermetures/1
 Accept: application/json
 
 ###
+
+# ============================================================
+# ADMINISTRATEURS
+# ============================================================
+
+### Récupérer tous les administrateurs actifs
+GET http://localhost:8000/api/administrateurs
+Accept: application/json
+
+###
+
+### Récupérer un administrateur par son ID (ex: ID = 1)
+GET http://localhost:8000/api/administrateurs/1
+Accept: application/json
+
+###
+
+### Récupérer un administrateur inexistant (doit retourner 404)
+GET http://localhost:8000/api/administrateurs/999
+Accept: application/json
+
+###
+
+### Créer un administrateur GLOBAL
+POST http://localhost:8000/api/administrateurs
+Content-Type: application/json
+
+{
+    "login": "admin.global",
+    "mot_de_passe": "secret123",
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "email": "jean.dupont@padel.fr",
+    "type": "GLOBAL"
+}
+
+###
+
+### Créer un administrateur SITE (site_id obligatoire)
+POST http://localhost:8000/api/administrateurs
+Content-Type: application/json
+
+{
+    "login": "admin.paris",
+    "mot_de_passe": "secret123",
+    "nom": "Martin",
+    "prenom": "Alice",
+    "type": "SITE",
+    "site_id": 1
+}
+
+###
+
+### Tester erreur : type invalide (doit retourner 400)
+POST http://localhost:8000/api/administrateurs
+Content-Type: application/json
+
+{
+    "login": "admin.test",
+    "mot_de_passe": "secret123",
+    "type": "SUPERADMIN"
+}
+
+###
+
+### Tester erreur : type SITE sans site_id (doit retourner 400)
+POST http://localhost:8000/api/administrateurs
+Content-Type: application/json
+
+{
+    "login": "admin.test2",
+    "mot_de_passe": "secret123",
+    "type": "SITE"
+}
+
+###
+
+### Tester erreur : login déjà utilisé (doit retourner 409)
+POST http://localhost:8000/api/administrateurs
+Content-Type: application/json
+
+{
+    "login": "admin.global",
+    "mot_de_passe": "autremdp",
+    "type": "GLOBAL"
+}
+
+###
+
+### Mettre à jour un administrateur (ex: ID = 1)
+PUT http://localhost:8000/api/administrateurs/1
+Content-Type: application/json
+
+{
+    "email": "nouveau.email@padel.fr",
+    "prenom": "Jean-Paul"
+}
+
+###
+
+### Désactiver un administrateur (ex: ID = 1)
+DELETE http://localhost:8000/api/administrateurs/1
+Accept: application/json
+
+###
