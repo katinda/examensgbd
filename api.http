@@ -664,3 +664,129 @@ DELETE http://localhost:8000/api/administrateurs/1
 Accept: application/json
 
 ###
+
+# ============================================================
+# PENALITES
+# ============================================================
+
+### Récupérer toutes les pénalités
+GET http://localhost:8000/api/penalites
+Accept: application/json
+
+###
+
+### Récupérer les pénalités d'un membre (ex: membre ID = 1)
+GET http://localhost:8000/api/penalites?membre_id=1
+Accept: application/json
+
+###
+
+### Récupérer uniquement les pénalités actives (non levées)
+GET http://localhost:8000/api/penalites?actives=1
+Accept: application/json
+
+###
+
+### Récupérer une pénalité par son ID (ex: ID = 1)
+GET http://localhost:8000/api/penalites/1
+Accept: application/json
+
+###
+
+### Récupérer une pénalité inexistante (doit retourner 404)
+GET http://localhost:8000/api/penalites/999
+Accept: application/json
+
+###
+
+### Créer une pénalité
+POST http://localhost:8000/api/penalites
+Content-Type: application/json
+
+{
+    "membre_id": 1,
+    "reservation_id": 1,
+    "date_debut": "2026-05-01",
+    "date_fin": "2026-05-15",
+    "cause": "PRIVATE_INCOMPLETE"
+}
+
+###
+
+### Créer une pénalité sans réservation (cause OTHER)
+POST http://localhost:8000/api/penalites
+Content-Type: application/json
+
+{
+    "membre_id": 1,
+    "date_debut": "2026-06-01",
+    "date_fin": "2026-06-07",
+    "cause": "OTHER"
+}
+
+###
+
+### Tester erreur : cause invalide (doit retourner 400)
+POST http://localhost:8000/api/penalites
+Content-Type: application/json
+
+{
+    "membre_id": 1,
+    "date_debut": "2026-05-01",
+    "date_fin": "2026-05-15",
+    "cause": "MAUVAISE_CAUSE"
+}
+
+###
+
+### Tester erreur : dates invalides (doit retourner 400)
+POST http://localhost:8000/api/penalites
+Content-Type: application/json
+
+{
+    "membre_id": 1,
+    "date_debut": "2026-05-15",
+    "date_fin": "2026-05-01",
+    "cause": "OTHER"
+}
+
+###
+
+### Lever une pénalité (ex: ID = 1, admin GLOBAL ID = 1)
+PATCH http://localhost:8000/api/penalites/1/lever
+Content-Type: application/json
+
+{
+    "admin_id": 1,
+    "raison": "Erreur constatée après vérification"
+}
+
+###
+
+### Tester erreur : pénalité déjà levée (doit retourner 409)
+PATCH http://localhost:8000/api/penalites/1/lever
+Content-Type: application/json
+
+{
+    "admin_id": 1,
+    "raison": "Tentative de double levée"
+}
+
+###
+
+### Tester erreur : admin non GLOBAL (doit retourner 403)
+PATCH http://localhost:8000/api/penalites/1/lever
+Content-Type: application/json
+
+{
+    "admin_id": 2,
+    "raison": "Admin de site ne peut pas lever"
+}
+
+###
+
+### Supprimer une pénalité (ex: ID = 1)
+DELETE http://localhost:8000/api/penalites/1
+Accept: application/json
+
+###
