@@ -4,6 +4,17 @@
 // Toutes les requêtes HTTP arrivent ici en premier.
 // Ce fichier lit l'URL et appelle le bon controller.
 
+// Autorise le frontend (fichier local ou autre origine) à appeler cette API depuis le navigateur.
+// Sans ces headers, le navigateur bloque les requêtes fetch() pour cause de politique same-origin.
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 require_once __DIR__ . '/config/Database.php';
 require_once __DIR__ . '/repositories/SiteRepository.php';
 require_once __DIR__ . '/repositories/TerrainRepository.php';
