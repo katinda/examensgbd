@@ -104,6 +104,74 @@
             </table>
         </section>
 
+        <!-- SECTION MEMBRES -->
+        <section id="section-membres" class="section">
+            <div class="section-header">
+                <h2>Membres</h2>
+                <button id="btn-nouveau-membre">+ Nouveau membre</button>
+            </div>
+
+            <!-- Filtre par catégorie -->
+            <div>
+                <label>Filtrer par catégorie :
+                    <select id="filtre-categorie">
+                        <option value="">Tous</option>
+                        <option value="G">Global (G)</option>
+                        <option value="S">Site (S)</option>
+                        <option value="L">Libre (L)</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-membre" style="display:none">
+                <h3>Nouveau membre</h3>
+                <label>Matricule <input type="text" name="matricule" required placeholder="G0001 / S00001 / L00001"></label>
+                <label>Nom <input type="text" name="nom" required></label>
+                <label>Prénom <input type="text" name="prenom" required></label>
+                <label>Email <input type="email" name="email"></label>
+                <label>Téléphone <input type="text" name="telephone"></label>
+                <label>Catégorie
+                    <select name="categorie" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="G">Global (G)</option>
+                        <option value="S">Site (S)</option>
+                        <option value="L">Libre (L)</option>
+                    </select>
+                </label>
+                <label id="label-site-membre" style="display:none">Site
+                    <select name="site_id">
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-membre">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-membres" style="display:none;color:red"></p>
+
+            <!-- Liste des membres -->
+            <table id="table-membres">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Matricule</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Catégorie</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-membres">
+                    <tr><td colspan="7">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
     </main>
 
     <script src="app.js"></script>

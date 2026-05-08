@@ -225,7 +225,133 @@ document.getElementById('form-terrain').addEventListener('submit', async e => {
     }
 });
 
+// ── MEMBRES ──────────────────────────────────────────────────
+// Appelle GET /api/membres (avec filtre catégorie optionnel) et affiche le résultat.
+async function chargerMembres(categorie = '') {
+    try {
+        const url = categorie ? `${API}/api/membres?categorie=${categorie}` : `${API}/api/membres`;
+        const res = await fetch(url);
+        const membres = await res.json();
+        afficherMembres(membres);
+    } catch {
+        afficherErreur('erreur-membres', 'Impossible de contacter le serveur.');
+    }
+}
+
+// Injecte les membres dans le tableau HTML.
+// Attache aussi les listeners de suppression sur chaque bouton généré.
+function afficherMembres(membres) {
+    const tbody = document.getElementById('tbody-membres');
+
+    if (!membres.length) {
+        tbody.innerHTML = '<tr><td colspan="7">Aucun membre.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = membres.map(m => `
+        <tr>
+            <td>${m.id}</td>
+            <td>${m.matricule}</td>
+            <td>${m.nom}</td>
+            <td>${m.prenom}</td>
+            <td>${m.categorie}</td>
+            <td>${m.email ?? '—'}</td>
+            <td>
+                <button class="btn-supprimer" data-id="${m.id}">Désactiver</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => desactiverMembre(btn.dataset.id));
+    });
+}
+
+// Appelle DELETE /api/membres/:id après confirmation, puis recharge la liste.
+async function desactiverMembre(id) {
+    if (!confirm('Désactiver ce membre ?')) return;
+    try {
+        const res = await fetch(`${API}/api/membres/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-membres');
+        chargerMembres(document.getElementById('filtre-categorie').value);
+    } catch {
+        afficherErreur('erreur-membres', 'Erreur lors de la désactivation.');
+    }
+}
+
+// Recharge la liste quand le filtre catégorie change.
+document.getElementById('filtre-categorie').addEventListener('change', e => {
+    chargerMembres(e.target.value);
+});
+
+// Affiche le formulaire et charge les sites dans le select si catégorie S sélectionnée.
+document.getElementById('btn-nouveau-membre').addEventListener('click', () => {
+    document.getElementById('form-membre').style.display = 'block';
+});
+
+// Cache et réinitialise le formulaire quand on clique sur "Annuler".
+document.getElementById('btn-annuler-membre').addEventListener('click', () => {
+    document.getElementById('form-membre').style.display = 'none';
+    document.getElementById('form-membre').reset();
+    document.getElementById('label-site-membre').style.display = 'none';
+});
+
+// Affiche ou cache le select site selon la catégorie choisie (obligatoire pour S).
+document.querySelector('#form-membre select[name="categorie"]').addEventListener('change', async e => {
+    const labelSite = document.getElementById('label-site-membre');
+    if (e.target.value === 'S') {
+        labelSite.style.display = 'block';
+        const res = await fetch(`${API}/sites`);
+        const sites = await res.json();
+        const select = labelSite.querySelector('select');
+        select.innerHTML = '<option value="">-- Choisir un site --</option>';
+        sites.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            select.appendChild(opt);
+        });
+    } else {
+        labelSite.style.display = 'none';
+    }
+});
+
+// Appelle POST /api/membres avec les données du formulaire, puis recharge la liste.
+document.getElementById('form-membre').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        matricule:  form.matricule.value,
+        nom:        form.nom.value,
+        prenom:     form.prenom.value,
+        email:      form.email.value || undefined,
+        telephone:  form.telephone.value || undefined,
+        categorie:  form.categorie.value,
+    };
+    if (form.categorie.value === 'S') {
+        body.site_id = parseInt(form.site_id.value);
+    }
+
+    try {
+        const res = await fetch(`${API}/api/membres`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        document.getElementById('label-site-membre').style.display = 'none';
+        cacherErreur('erreur-membres');
+        chargerMembres();
+    } catch {
+        afficherErreur('erreur-membres', 'Erreur lors de la création du membre.');
+    }
+});
+
 // ── Init ─────────────────────────────────────────────────────
-// Chargement initial des sites et terrains au démarrage de la page.
+// Chargement initial des sites, terrains et membres au démarrage de la page.
 chargerSites();
 chargerTerrains();
+chargerMembres();
