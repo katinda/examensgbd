@@ -60,6 +60,50 @@
             </table>
         </section>
 
+        <!-- SECTION TERRAINS -->
+        <section id="section-terrains" class="section">
+            <div class="section-header">
+                <h2>Terrains</h2>
+                <button id="btn-nouveau-terrain">+ Nouveau terrain</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-terrain" style="display:none">
+                <h3>Nouveau terrain</h3>
+                <label>Site
+                    <select name="site_id" required>
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <label>Numéro de terrain <input type="number" name="num_terrain" min="1" required></label>
+                <label>Libellé <input type="text" name="libelle"></label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-terrain">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-terrains" style="display:none;color:red"></p>
+
+            <!-- Liste des terrains -->
+            <table id="table-terrains">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Site</th>
+                        <th>N° terrain</th>
+                        <th>Libellé</th>
+                        <th>Actif</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-terrains">
+                    <tr><td colspan="6">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
     </main>
 
     <script src="app.js"></script>
