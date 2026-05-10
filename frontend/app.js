@@ -350,6 +350,143 @@ document.getElementById('form-membre').addEventListener('submit', async e => {
     }
 });
 
+// ── RÉSERVATIONS ─────────────────────────────────────────────
+// Appelle GET /api/membres/:id/reservations et affiche les réservations du membre.
+async function chargerReservationsMembre(membreId) {
+    try {
+        const res = await fetch(`${API}/api/membres/${membreId}/reservations`);
+        if (!res.ok) throw new Error();
+        const reservations = await res.json();
+        afficherReservations(reservations);
+    } catch {
+        afficherErreur('erreur-reservations', 'Membre introuvable ou aucune réservation.');
+    }
+}
+
+// Injecte les réservations dans le tableau HTML.
+// Attache aussi les listeners de suppression sur chaque bouton généré.
+function afficherReservations(reservations) {
+    const tbody = document.getElementById('tbody-reservations');
+
+    if (!reservations.length) {
+        tbody.innerHTML = '<tr><td colspan="7">Aucune réservation.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = reservations.map(r => `
+        <tr>
+            <td>${r.id}</td>
+            <td>${r.terrain_id}</td>
+            <td>${r.organisateur_id}</td>
+            <td>${r.date_match}</td>
+            <td>${r.heure_debut}</td>
+            <td>${r.type}</td>
+            <td>
+                <button class="btn-supprimer" data-id="${r.id}">Supprimer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => supprimerReservation(btn.dataset.id));
+    });
+}
+
+// Appelle DELETE /api/reservations/:id après confirmation, puis recharge la liste.
+async function supprimerReservation(id) {
+    if (!confirm('Supprimer cette réservation ?')) return;
+    try {
+        const res = await fetch(`${API}/api/reservations/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-reservations');
+        const membreId = document.getElementById('filtre-membre-id').value;
+        if (membreId) chargerReservationsMembre(membreId);
+    } catch {
+        afficherErreur('erreur-reservations', 'Erreur lors de la suppression.');
+    }
+}
+
+// Lance la recherche des réservations quand on clique sur "Chercher".
+document.getElementById('btn-filtrer-membre').addEventListener('click', () => {
+    const membreId = document.getElementById('filtre-membre-id').value;
+    if (!membreId) return;
+    cacherErreur('erreur-reservations');
+    chargerReservationsMembre(membreId);
+});
+
+// Remplit les selects terrain et membre du formulaire de réservation.
+async function chargerSelectsReservation() {
+    try {
+        const [resTerrains, resMembres] = await Promise.all([
+            fetch(`${API}/terrains`),
+            fetch(`${API}/api/membres`),
+        ]);
+        const terrains = await resTerrains.json();
+        const membres  = await resMembres.json();
+
+        const selectTerrain = document.querySelector('#form-reservation select[name="terrain_id"]');
+        selectTerrain.innerHTML = '<option value="">-- Choisir un terrain --</option>';
+        terrains.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = `#${t.id} — ${t.libelle ?? 'Terrain ' + t.num_terrain}`;
+            selectTerrain.appendChild(opt);
+        });
+
+        const selectMembre = document.querySelector('#form-reservation select[name="organisateur_id"]');
+        selectMembre.innerHTML = '<option value="">-- Choisir un membre --</option>';
+        membres.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.nom} ${m.prenom} (${m.matricule})`;
+            selectMembre.appendChild(opt);
+        });
+    } catch {
+        afficherErreur('erreur-reservations', 'Impossible de charger les données.');
+    }
+}
+
+// Affiche le formulaire et charge les selects terrain et membre.
+document.getElementById('btn-nouvelle-reservation').addEventListener('click', () => {
+    chargerSelectsReservation();
+    document.getElementById('form-reservation').style.display = 'block';
+});
+
+// Cache et réinitialise le formulaire quand on clique sur "Annuler".
+document.getElementById('btn-annuler-reservation').addEventListener('click', () => {
+    document.getElementById('form-reservation').style.display = 'none';
+    document.getElementById('form-reservation').reset();
+});
+
+// Appelle POST /api/reservations avec les données du formulaire, puis recharge la liste.
+document.getElementById('form-reservation').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        terrain_id:      parseInt(form.terrain_id.value),
+        organisateur_id: parseInt(form.organisateur_id.value),
+        date_match:      form.date_match.value,
+        heure_debut:     form.heure_debut.value + ':00',
+        type:            form.type.value,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/reservations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-reservations');
+        const membreId = document.getElementById('filtre-membre-id').value;
+        if (membreId) chargerReservationsMembre(membreId);
+    } catch {
+        afficherErreur('erreur-reservations', 'Erreur lors de la création de la réservation.');
+    }
+});
+
 // ── Init ─────────────────────────────────────────────────────
 // Chargement initial des sites, terrains et membres au démarrage de la page.
 chargerSites();
