@@ -487,8 +487,199 @@ document.getElementById('form-reservation').addEventListener('submit', async e =
     }
 });
 
+// ── PÉNALITÉS ────────────────────────────────────────────────
+// Appelle GET /api/penalites (avec filtres optionnels) et affiche le résultat.
+async function chargerPenalites(params = {}) {
+    try {
+        const query = new URLSearchParams(params).toString();
+        const url = query ? `${API}/api/penalites?${query}` : `${API}/api/penalites`;
+        const res = await fetch(url);
+        const penalites = await res.json();
+        afficherPenalites(penalites);
+    } catch {
+        afficherErreur('erreur-penalites', 'Impossible de contacter le serveur.');
+    }
+}
+
+// Injecte les pénalités dans le tableau HTML.
+// Attache les listeners "Lever" et "Supprimer" sur chaque ligne générée.
+function afficherPenalites(penalites) {
+    const tbody = document.getElementById('tbody-penalites');
+
+    if (!penalites.length) {
+        tbody.innerHTML = '<tr><td colspan="7">Aucune pénalité.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = penalites.map(p => `
+        <tr>
+            <td>${p.id}</td>
+            <td>${p.membre_id}</td>
+            <td>${p.cause}</td>
+            <td>${p.date_debut}</td>
+            <td>${p.date_fin}</td>
+            <td>${p.date_levee ? 'Oui' : 'Non'}</td>
+            <td>
+                ${!p.date_levee ? `<button class="btn-lever" data-id="${p.id}">Lever</button>` : ''}
+                <button class="btn-supprimer" data-id="${p.id}">Supprimer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-lever').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormLever(btn.dataset.id));
+    });
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => supprimerPenalite(btn.dataset.id));
+    });
+}
+
+// Ouvre le formulaire de levée en pré-remplissant l'ID de la pénalité.
+function ouvrirFormLever(penaliteId) {
+    const form = document.getElementById('form-lever-penalite');
+    form.penalite_id.value = penaliteId;
+    document.getElementById('lever-penalite-id').textContent = `#${penaliteId}`;
+    form.style.display = 'block';
+}
+
+// Appelle PATCH /api/penalites/:id/lever avec admin_id et raison.
+document.getElementById('form-lever-penalite').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id = form.penalite_id.value;
+    const body = {
+        admin_id: parseInt(form.admin_id.value),
+        raison:   form.raison.value,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/penalites/${id}/lever`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-penalites');
+        chargerPenalites(filtresPenalitesActuels());
+    } catch {
+        afficherErreur('erreur-penalites', 'Erreur lors de la levée (vérifiez que l\'admin est GLOBAL).');
+    }
+});
+
+// Cache et réinitialise le formulaire de levée.
+document.getElementById('btn-annuler-lever').addEventListener('click', () => {
+    document.getElementById('form-lever-penalite').style.display = 'none';
+    document.getElementById('form-lever-penalite').reset();
+});
+
+// Appelle DELETE /api/penalites/:id après confirmation, puis recharge la liste.
+async function supprimerPenalite(id) {
+    if (!confirm('Supprimer cette pénalité ?')) return;
+    try {
+        const res = await fetch(`${API}/api/penalites/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-penalites');
+        chargerPenalites(filtresPenalitesActuels());
+    } catch {
+        afficherErreur('erreur-penalites', 'Erreur lors de la suppression.');
+    }
+}
+
+// Retourne les paramètres de filtre actuellement actifs.
+function filtresPenalitesActuels() {
+    const params = {};
+    const membreId = document.getElementById('filtre-penalite-membre-id').value;
+    const actives  = document.getElementById('filtre-penalites-actives').checked;
+    if (membreId) params.membre_id = membreId;
+    if (actives)  params.actives   = 1;
+    return params;
+}
+
+// Lance la recherche par membre quand on clique sur "Chercher".
+document.getElementById('btn-filtrer-penalite-membre').addEventListener('click', () => {
+    cacherErreur('erreur-penalites');
+    chargerPenalites(filtresPenalitesActuels());
+});
+
+// Recharge avec filtre actives quand la checkbox change.
+document.getElementById('filtre-penalites-actives').addEventListener('change', () => {
+    chargerPenalites(filtresPenalitesActuels());
+});
+
+// Recharge toutes les pénalités et réinitialise les filtres.
+document.getElementById('btn-toutes-penalites').addEventListener('click', () => {
+    document.getElementById('filtre-penalite-membre-id').value = '';
+    document.getElementById('filtre-penalites-actives').checked = false;
+    cacherErreur('erreur-penalites');
+    chargerPenalites();
+});
+
+// Remplit le select membre du formulaire de création de pénalité.
+async function chargerMembresDansPenalite() {
+    try {
+        const res = await fetch(`${API}/api/membres`);
+        const membres = await res.json();
+        const select = document.querySelector('#form-penalite select[name="membre_id"]');
+        select.innerHTML = '<option value="">-- Choisir un membre --</option>';
+        membres.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.nom} ${m.prenom} (${m.matricule})`;
+            select.appendChild(opt);
+        });
+    } catch {
+        afficherErreur('erreur-penalites', 'Impossible de charger les membres.');
+    }
+}
+
+// Affiche le formulaire et charge le select membre.
+document.getElementById('btn-nouvelle-penalite').addEventListener('click', () => {
+    chargerMembresDansPenalite();
+    document.getElementById('form-penalite').style.display = 'block';
+});
+
+// Cache et réinitialise le formulaire de création.
+document.getElementById('btn-annuler-penalite').addEventListener('click', () => {
+    document.getElementById('form-penalite').style.display = 'none';
+    document.getElementById('form-penalite').reset();
+});
+
+// Appelle POST /api/penalites avec les données du formulaire, puis recharge la liste.
+document.getElementById('form-penalite').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        membre_id:  parseInt(form.membre_id.value),
+        date_debut: form.date_debut.value,
+        date_fin:   form.date_fin.value,
+        cause:      form.cause.value,
+    };
+    if (form.reservation_id.value) {
+        body.reservation_id = parseInt(form.reservation_id.value);
+    }
+
+    try {
+        const res = await fetch(`${API}/api/penalites`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-penalites');
+        chargerPenalites();
+    } catch {
+        afficherErreur('erreur-penalites', 'Erreur lors de la création de la pénalité.');
+    }
+});
+
 // ── Init ─────────────────────────────────────────────────────
-// Chargement initial des sites, terrains et membres au démarrage de la page.
+// Chargement initial des sites, terrains, membres et pénalités au démarrage de la page.
 chargerSites();
 chargerTerrains();
 chargerMembres();
+chargerPenalites();

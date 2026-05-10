@@ -237,6 +237,84 @@
             </table>
         </section>
 
+        <!-- SECTION PÉNALITÉS -->
+        <section id="section-penalites" class="section">
+            <div class="section-header">
+                <h2>Pénalités</h2>
+                <button id="btn-nouvelle-penalite">+ Nouvelle pénalité</button>
+            </div>
+
+            <!-- Filtres -->
+            <div>
+                <label>Filtrer par membre (ID) :
+                    <input type="number" id="filtre-penalite-membre-id" placeholder="ID du membre" min="1">
+                    <button id="btn-filtrer-penalite-membre">Chercher</button>
+                </label>
+                <label>
+                    <input type="checkbox" id="filtre-penalites-actives">
+                    Afficher uniquement les actives
+                </label>
+                <button id="btn-toutes-penalites">Toutes les pénalités</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-penalite" style="display:none">
+                <h3>Nouvelle pénalité</h3>
+                <label>Membre
+                    <select name="membre_id" required>
+                        <option value="">-- Choisir un membre --</option>
+                    </select>
+                </label>
+                <label>Réservation (ID, optionnel) <input type="number" name="reservation_id" min="1"></label>
+                <label>Date début <input type="date" name="date_debut" required></label>
+                <label>Date fin <input type="date" name="date_fin" required></label>
+                <label>Cause
+                    <select name="cause" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="PRIVATE_INCOMPLETE">Partie privée incomplète</option>
+                        <option value="OTHER">Autre</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-penalite">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Formulaire lever une pénalité -->
+            <form id="form-lever-penalite" style="display:none">
+                <h3>Lever la pénalité <span id="lever-penalite-id"></span></h3>
+                <input type="hidden" name="penalite_id">
+                <label>Admin GLOBAL (ID) <input type="number" name="admin_id" required min="1"></label>
+                <label>Raison <input type="text" name="raison" required></label>
+                <div class="form-actions">
+                    <button type="submit">Confirmer</button>
+                    <button type="button" id="btn-annuler-lever">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-penalites" style="display:none;color:red"></p>
+
+            <!-- Liste des pénalités -->
+            <table id="table-penalites">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Membre</th>
+                        <th>Cause</th>
+                        <th>Début</th>
+                        <th>Fin</th>
+                        <th>Levée</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-penalites">
+                    <tr><td colspan="7">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
     </main>
 
     <script src="app.js"></script>
