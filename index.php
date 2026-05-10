@@ -47,6 +47,8 @@ require_once __DIR__ . '/models/Paiement.php';
 require_once __DIR__ . '/repositories/PaiementRepository.php';
 require_once __DIR__ . '/services/PaiementService.php';
 require_once __DIR__ . '/controllers/PaiementController.php';
+require_once __DIR__ . '/services/StatsService.php';
+require_once __DIR__ . '/controllers/StatsController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -83,6 +85,8 @@ $penaliteController      = new PenaliteController($penaliteService);
 $paiementRepo            = new PaiementRepository($pdo);
 $paiementService         = new PaiementService($paiementRepo, $inscriptionRepo);
 $paiementController      = new PaiementController($paiementService);
+$statsService            = new StatsService($pdo);
+$statsController         = new StatsController($statsService);
 
 // --- Routeur ---
 
@@ -285,6 +289,10 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /api/paiements/{id} → annule un paiement
 } elseif ($method === 'DELETE' && preg_match('#^/api/paiements/(\d+)$#', $uri, $matches)) {
     $paiementController->annuler((int) $matches[1]);
+
+// GET /api/stats, GET /api/stats?site_id={id} → statistiques globales ou par site
+} elseif ($method === 'GET' && $uri === '/api/stats') {
+    $statsController->getStats();
 
 // URL inconnue → erreur 404
 } else {

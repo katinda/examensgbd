@@ -20,6 +20,7 @@
             <button class="nav-btn" data-section="fermetures">Fermetures</button>
             <button class="nav-btn" data-section="administrateurs">Administrateurs</button>
             <button class="nav-btn" data-section="paiements">Paiements</button>
+            <button class="nav-btn" data-section="stats">Statistiques</button>
         </nav>
     </header>
 
@@ -599,6 +600,79 @@
                     </thead>
                     <tbody id="tbody-paiement"></tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- SECTION STATISTIQUES -->
+        <section id="section-stats" class="section">
+            <div class="section-header">
+                <h2>Statistiques</h2>
+                <button id="btn-rafraichir-stats">Rafraîchir</button>
+            </div>
+
+            <!-- Filtre par site -->
+            <div>
+                <label>Filtrer par site :
+                    <select id="filtre-stats-site">
+                        <option value="">Global (tous les sites)</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-stats" style="display:none;color:red"></p>
+
+            <!-- Chiffre d'affaires -->
+            <div>
+                <h3>Chiffre d'affaires</h3>
+                <p>Total : <strong id="stats-ca">—</strong> €</p>
+            </div>
+
+            <!-- Réservations -->
+            <div>
+                <h3>Réservations</h3>
+                <table>
+                    <thead>
+                        <tr><th>Total</th><th>Publiques</th><th>Privées</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="stats-resa-total">—</td>
+                            <td id="stats-resa-publiques">—</td>
+                            <td id="stats-resa-privees">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Membres (global uniquement) -->
+            <div id="stats-membres-section">
+                <h3>Membres actifs</h3>
+                <table>
+                    <thead>
+                        <tr><th>Total</th><th>Global (G)</th><th>Site (S)</th><th>Libre (L)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="stats-membres-total">—</td>
+                            <td id="stats-membres-g">—</td>
+                            <td id="stats-membres-s">—</td>
+                            <td id="stats-membres-l">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pénalités (global uniquement) -->
+            <div id="stats-penalites-section">
+                <h3>Pénalités actives</h3>
+                <p><strong id="stats-penalites">—</strong></p>
+            </div>
+
+            <!-- Taux de remplissage -->
+            <div>
+                <h3>Taux de remplissage moyen</h3>
+                <p><strong id="stats-taux">—</strong> %</p>
             </div>
         </section>
 

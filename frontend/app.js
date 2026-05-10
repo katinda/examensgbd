@@ -1348,6 +1348,72 @@ document.getElementById('form-paiement').addEventListener('submit', async e => {
     }
 });
 
+// ── STATISTIQUES ─────────────────────────────────────────────
+// Appelle GET /api/stats (global ou par site) et affiche les résultats.
+async function chargerStats(siteId = '') {
+    try {
+        const url = siteId ? `${API}/api/stats?site_id=${siteId}` : `${API}/api/stats`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error();
+        const stats = await res.json();
+        afficherStats(stats, siteId);
+    } catch {
+        afficherErreur('erreur-stats', 'Impossible de charger les statistiques.');
+    }
+}
+
+// Injecte les statistiques dans les éléments HTML.
+// Masque les sections membres et pénalités quand un site est sélectionné (non disponibles).
+function afficherStats(stats, siteId) {
+    const estGlobal = !siteId;
+
+    document.getElementById('stats-ca').textContent            = stats.chiffre_affaires?.toFixed(2) ?? '0.00';
+    document.getElementById('stats-resa-total').textContent    = stats.reservations?.total ?? '—';
+    document.getElementById('stats-resa-publiques').textContent = stats.reservations?.publiques ?? '—';
+    document.getElementById('stats-resa-privees').textContent  = stats.reservations?.privees ?? '—';
+    document.getElementById('stats-taux').textContent          = stats.taux_remplissage ?? '—';
+
+    // Membres et pénalités disponibles uniquement en vue globale.
+    document.getElementById('stats-membres-section').style.display  = estGlobal ? 'block' : 'none';
+    document.getElementById('stats-penalites-section').style.display = estGlobal ? 'block' : 'none';
+
+    if (estGlobal) {
+        document.getElementById('stats-membres-total').textContent = stats.membres?.total ?? '—';
+        document.getElementById('stats-membres-g').textContent     = stats.membres?.G ?? '—';
+        document.getElementById('stats-membres-s').textContent     = stats.membres?.S ?? '—';
+        document.getElementById('stats-membres-l').textContent     = stats.membres?.L ?? '—';
+        document.getElementById('stats-penalites').textContent     = stats.penalites_actives ?? '—';
+    }
+}
+
+// Remplit le select site du filtre stats.
+async function chargerSitesDansStats() {
+    try {
+        const res = await fetch(`${API}/sites`);
+        const sites = await res.json();
+        const select = document.getElementById('filtre-stats-site');
+        select.innerHTML = '<option value="">Global (tous les sites)</option>';
+        sites.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            select.appendChild(opt);
+        });
+    } catch {
+        afficherErreur('erreur-stats', 'Impossible de charger les sites.');
+    }
+}
+
+// Recharge les stats quand le filtre site change.
+document.getElementById('filtre-stats-site').addEventListener('change', e => {
+    chargerStats(e.target.value);
+});
+
+// Recharge les stats quand on clique sur "Rafraîchir".
+document.getElementById('btn-rafraichir-stats').addEventListener('click', () => {
+    chargerStats(document.getElementById('filtre-stats-site').value);
+});
+
 // ── Init ─────────────────────────────────────────────────────
 // Chargement initial des données au démarrage de la page.
 chargerSites();
@@ -1359,3 +1425,5 @@ chargerHoraires();
 chargerSitesDansFermetures();
 chargerFermetures();
 chargerAdministrateurs();
+chargerSitesDansStats();
+chargerStats();
