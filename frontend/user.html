@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Manager — Espace joueur</title>
+</head>
+<body>
+
+    <header>
+        <h1>Padel Manager — Espace joueur</h1>
+    </header>
+
+    <main>
+
+        <!-- IDENTIFICATION -->
+        <section id="section-identification">
+            <h2>Identification</h2>
+            <form id="form-identification">
+                <label>Matricule <input type="text" id="input-matricule" placeholder="G0001 / S00001 / L00001" required></label>
+                <button type="submit">Accéder</button>
+            </form>
+            <p id="erreur-identification" style="display:none;color:red"></p>
+        </section>
+
+        <!-- DASHBOARD (masqué jusqu'à l'identification) -->
+        <section id="section-dashboard" style="display:none">
+
+            <!-- Infos membre -->
+            <div id="info-membre">
+                <h2>Bonjour, <span id="membre-prenom"></span> <span id="membre-nom"></span></h2>
+                <p>Matricule : <strong id="membre-matricule"></strong> — Catégorie : <strong id="membre-categorie"></strong></p>
+                <a href="index.html"><button id="btn-deconnexion">Se déconnecter</button></a>
+            </div>
+
+            <!-- Navigation -->
+            <nav>
+                <button class="nav-btn active" data-section="mes-reservations">Mes réservations</button>
+                <button class="nav-btn" data-section="matches-publics">Matches publics</button>
+                <button class="nav-btn" data-section="mes-penalites">Mes pénalités</button>
+                <button class="nav-btn" data-section="nouvelle-reservation">Créer une réservation</button>
+            </nav>
+
+            <!-- MES RÉSERVATIONS -->
+            <section id="section-mes-reservations" class="user-section">
+                <h2>Mes réservations</h2>
+                <p id="erreur-mes-reservations" style="display:none;color:red"></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Terrain</th>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-mes-reservations">
+                        <tr><td colspan="6">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- MATCHES PUBLICS -->
+            <section id="section-matches-publics" class="user-section" style="display:none">
+                <h2>Matches publics disponibles</h2>
+                <p id="erreur-matches-publics" style="display:none;color:red"></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Terrain</th>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Places restantes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-matches-publics">
+                        <tr><td colspan="6">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- MES PÉNALITÉS -->
+            <section id="section-mes-penalites" class="user-section" style="display:none">
+                <h2>Mes pénalités</h2>
+                <p id="erreur-mes-penalites" style="display:none;color:red"></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cause</th>
+                            <th>Début</th>
+                            <th>Fin</th>
+                            <th>Levée</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-mes-penalites">
+                        <tr><td colspan="5">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- CRÉER UNE RÉSERVATION -->
+            <section id="section-nouvelle-reservation" class="user-section" style="display:none">
+                <h2>Créer une réservation</h2>
+                <p id="erreur-nouvelle-reservation" style="display:none;color:red"></p>
+                <form id="form-nouvelle-reservation">
+                    <label>Terrain
+                        <select name="terrain_id" required>
+                            <option value="">-- Choisir un terrain --</option>
+                        </select>
+                    </label>
+                    <label>Date <input type="date" name="date_match" required></label>
+                    <label>Heure de début <input type="time" name="heure_debut" required></label>
+                    <label>Type
+                        <select name="type" required>
+                            <option value="">-- Choisir --</option>
+                            <option value="PRIVE">Privé</option>
+                            <option value="PUBLIC">Public</option>
+                        </select>
+                    </label>
+                    <button type="submit">Réserver</button>
+                </form>
+            </section>
+
+        </section>
+
+    </main>
+
+    <script src="user.js"></script>
+</body>
+</html>
