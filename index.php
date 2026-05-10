@@ -49,6 +49,8 @@ require_once __DIR__ . '/services/PaiementService.php';
 require_once __DIR__ . '/controllers/PaiementController.php';
 require_once __DIR__ . '/services/StatsService.php';
 require_once __DIR__ . '/controllers/StatsController.php';
+require_once __DIR__ . '/services/AuthService.php';
+require_once __DIR__ . '/controllers/AuthController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -87,6 +89,8 @@ $paiementService         = new PaiementService($paiementRepo, $inscriptionRepo);
 $paiementController      = new PaiementController($paiementService);
 $statsService            = new StatsService($pdo);
 $statsController         = new StatsController($statsService);
+$authService             = new AuthService($adminRepo);
+$authController          = new AuthController($authService);
 
 // --- Routeur ---
 
@@ -293,6 +297,10 @@ if ($method === 'GET' && $uri === '/sites') {
 // GET /api/stats, GET /api/stats?site_id={id} → statistiques globales ou par site
 } elseif ($method === 'GET' && $uri === '/api/stats') {
     $statsController->getStats();
+
+// POST /api/auth → authentifie un administrateur
+} elseif ($method === 'POST' && $uri === '/api/auth') {
+    $authController->login();
 
 // URL inconnue → erreur 404
 } else {

@@ -1,11 +1,82 @@
 // URL de base de l'API PHP
 const API = 'http://localhost:8000';
 
-// ── Navigation ──────────────────────────────────────────────
-// Cache toutes les sections au démarrage, puis affiche uniquement Sites.
-document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-document.getElementById('section-sites').style.display = 'block';
+// Admin connecté (stocké en sessionStorage pour survivre aux rechargements).
+let adminConnecte = JSON.parse(sessionStorage.getItem('admin')) ?? null;
 
+// ── Authentification ─────────────────────────────────────────
+// Affiche le dashboard si déjà connecté, sinon affiche le formulaire de login.
+function initialiserAdmin() {
+    if (adminConnecte) {
+        afficherDashboard();
+    }
+}
+
+// Affiche le dashboard admin et masque le formulaire de login.
+function afficherDashboard() {
+    document.getElementById('section-login-admin').style.display = 'none';
+    document.getElementById('header-admin').style.display        = 'block';
+    document.getElementById('main-admin').style.display          = 'block';
+    document.getElementById('header-admin-info').textContent =
+        `${adminConnecte.prenom ?? ''} ${adminConnecte.nom ?? ''} (${adminConnecte.type})`;
+
+    // Cache toutes les sections et affiche uniquement Sites.
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    document.getElementById('section-sites').style.display = 'block';
+
+    chargerSites();
+    chargerTerrains();
+    chargerMembres();
+    chargerPenalites();
+    chargerSitesDansHoraires();
+    chargerHoraires();
+    chargerSitesDansFermetures();
+    chargerFermetures();
+    chargerAdministrateurs();
+    chargerSitesDansStats();
+    chargerStats();
+}
+
+// Appelle POST /api/auth avec login + mot de passe.
+document.getElementById('form-login-admin').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        login:        form.login.value,
+        mot_de_passe: form.mot_de_passe.value,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        if (res.status === 401 || res.status === 403) {
+            const data = await res.json();
+            document.getElementById('erreur-login-admin').textContent = data.erreur;
+            document.getElementById('erreur-login-admin').style.display = 'block';
+            return;
+        }
+
+        if (!res.ok) throw new Error();
+        adminConnecte = await res.json();
+        sessionStorage.setItem('admin', JSON.stringify(adminConnecte));
+        afficherDashboard();
+    } catch {
+        document.getElementById('erreur-login-admin').textContent = 'Erreur de connexion au serveur.';
+        document.getElementById('erreur-login-admin').style.display = 'block';
+    }
+});
+
+// Vide la session admin à la déconnexion.
+document.getElementById('btn-deconnexion-admin').addEventListener('click', () => {
+    sessionStorage.removeItem('admin');
+    adminConnecte = null;
+});
+
+// ── Navigation ──────────────────────────────────────────────
 // Gère les clics sur les boutons de navigation :
 // masque toutes les sections et affiche uniquement celle correspondant au bouton cliqué.
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -1415,15 +1486,5 @@ document.getElementById('btn-rafraichir-stats').addEventListener('click', () => 
 });
 
 // ── Init ─────────────────────────────────────────────────────
-// Chargement initial des données au démarrage de la page.
-chargerSites();
-chargerTerrains();
-chargerMembres();
-chargerPenalites();
-chargerSitesDansHoraires();
-chargerHoraires();
-chargerSitesDansFermetures();
-chargerFermetures();
-chargerAdministrateurs();
-chargerSitesDansStats();
-chargerStats();
+// Vérifie si un admin est déjà connecté (sessionStorage) au chargement de la page.
+initialiserAdmin();
