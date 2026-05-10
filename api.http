@@ -790,3 +790,90 @@ DELETE http://localhost:8000/api/penalites/1
 Accept: application/json
 
 ###
+
+# ============================================================
+# PAIEMENTS
+# ============================================================
+
+### Consulter le paiement d'une inscription (ex: inscription ID = 1)
+GET http://localhost:8000/api/inscriptions/1/paiement
+Accept: application/json
+
+###
+
+### Consulter le paiement d'une inscription inexistante (doit retourner 404)
+GET http://localhost:8000/api/inscriptions/999/paiement
+Accept: application/json
+
+###
+
+### Enregistrer un paiement (montant fixe 15.00, méthode optionnelle)
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "CARTE"
+}
+
+###
+
+### Enregistrer un paiement sans méthode
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00
+}
+
+###
+
+### Tester erreur : montant invalide (doit retourner 400)
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 10.00
+}
+
+###
+
+### Tester erreur : méthode invalide (doit retourner 400)
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "CHEQUE"
+}
+
+###
+
+### Tester erreur : paiement déjà existant (doit retourner 409)
+POST http://localhost:8000/api/inscriptions/1/paiement
+Content-Type: application/json
+
+{
+    "montant": 15.00,
+    "methode": "VIREMENT"
+}
+
+###
+
+### Annuler un paiement (ex: ID = 1)
+DELETE http://localhost:8000/api/paiements/1
+Accept: application/json
+
+###
+
+### Tester erreur : paiement déjà annulé (doit retourner 409)
+DELETE http://localhost:8000/api/paiements/1
+Accept: application/json
+
+###
+
+### Tester erreur : paiement inexistant (doit retourner 404)
+DELETE http://localhost:8000/api/paiements/999
+Accept: application/json
+
+###
