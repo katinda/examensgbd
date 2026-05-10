@@ -70,6 +70,47 @@ document.getElementById('form-login-admin').addEventListener('submit', async e =
     }
 });
 
+// Affiche ou cache le champ site selon le type choisi dans le formulaire d'inscription.
+document.querySelector('#form-inscription-admin select[name="type"]').addEventListener('change', e => {
+    document.getElementById('label-site-inscription').style.display =
+        e.target.value === 'SITE' ? 'block' : 'none';
+});
+
+// Appelle POST /api/administrateurs pour créer un nouveau compte admin.
+document.getElementById('form-inscription-admin').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        login:        form.login.value,
+        mot_de_passe: form.mot_de_passe.value,
+        nom:          form.nom.value || undefined,
+        prenom:       form.prenom.value || undefined,
+        email:        form.email.value || undefined,
+        type:         form.type.value,
+    };
+    if (form.type.value === 'SITE') {
+        body.site_id = parseInt(form.site_id.value);
+    }
+
+    try {
+        const res = await fetch(`${API}/api/administrateurs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        document.getElementById('erreur-inscription-admin').style.display  = 'none';
+        document.getElementById('succes-inscription-admin').textContent    = 'Compte créé ! Vous pouvez vous connecter.';
+        document.getElementById('succes-inscription-admin').style.display  = 'block';
+        form.reset();
+        document.getElementById('label-site-inscription').style.display = 'none';
+    } catch {
+        document.getElementById('succes-inscription-admin').style.display  = 'none';
+        document.getElementById('erreur-inscription-admin').textContent    = 'Erreur (login déjà utilisé ?)';
+        document.getElementById('erreur-inscription-admin').style.display  = 'block';
+    }
+});
+
 // Vide la session admin à la déconnexion.
 document.getElementById('btn-deconnexion-admin').addEventListener('click', () => {
     sessionStorage.removeItem('admin');
