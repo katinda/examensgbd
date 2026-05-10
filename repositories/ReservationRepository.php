@@ -51,18 +51,32 @@ class ReservationRepository {
 
 
     // Retourne les réservations publiques à venir avec le nombre de joueurs inscrits.
-    // Utilisé par l'interface joueur pour afficher les matches publics disponibles.
-    public function findPubliques(): array {
-        $stmt = $this->pdo->query("
+    // Filtre optionnel par site_id pour les membres de site (catégorie S).
+    public function findPubliques(?int $siteId = null): array {
+        $where = $siteId !== null
+            ? "WHERE r.Type = 'PUBLIC' AND r.Date_Match >= CURDATE() AND t.Site_ID = :siteId"
+            : "WHERE r.Type = 'PUBLIC' AND r.Date_Match >= CURDATE()";
+
+        $join = $siteId !== null ? "JOIN Terrains t ON t.Terrain_ID = r.Terrain_ID" : "";
+
+        $sql = "
             SELECT r.*, COUNT(i.Inscription_ID) AS nb_inscrits
             FROM Reservations r
+            $join
             LEFT JOIN Inscriptions i ON i.Reservation_ID = r.Reservation_ID
-            WHERE r.Type = 'PUBLIC'
-              AND r.Date_Match >= CURDATE()
+            $where
             GROUP BY r.Reservation_ID
             HAVING nb_inscrits < 4
             ORDER BY r.Date_Match ASC, r.Heure_Debut ASC
-        ");
+        ";
+
+        if ($siteId !== null) {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':siteId' => $siteId]);
+        } else {
+            $stmt = $this->pdo->query($sql);
+        }
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

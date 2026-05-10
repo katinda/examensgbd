@@ -142,17 +142,21 @@ async function payerInscription(inscriptionId) {
 }
 
 // ── MATCHES PUBLICS ──────────────────────────────────────────
-// Appelle GET /api/reservations/publiques pour afficher les matches publics disponibles.
-// NOTE : cet endpoint n'existe pas encore — à ajouter côté backend.
+// Appelle GET /api/reservations/publiques.
+// Membre S → filtre par son site. Membre G ou L → tous les sites.
 async function chargerMatchesPublics() {
     const tbody = document.getElementById('tbody-matches-publics');
     try {
-        const res = await fetch(`${API}/api/reservations/publiques`);
+        const siteId = membreConnecte.categorie === 'S' ? membreConnecte.site_id : null;
+        const url = siteId
+            ? `${API}/api/reservations/publiques?site_id=${siteId}`
+            : `${API}/api/reservations/publiques`;
+        const res = await fetch(url);
         if (!res.ok) throw new Error();
         const matches = await res.json();
         afficherMatchesPublics(matches);
     } catch {
-        tbody.innerHTML = '<tr><td colspan="6">Endpoint /api/reservations/publiques à implémenter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Impossible de charger les matches publics.</td></tr>';
     }
 }
 
@@ -237,9 +241,14 @@ function afficherMesPenalites(penalites) {
 
 // ── CRÉER UNE RÉSERVATION ────────────────────────────────────
 // Remplit le select terrain du formulaire de réservation.
+// Membre S → uniquement les terrains de son site. Membre G ou L → tous les terrains.
 async function chargerTerrainsDansForm() {
     try {
-        const res = await fetch(`${API}/terrains`);
+        const siteId = membreConnecte.categorie === 'S' ? membreConnecte.site_id : null;
+        const url = siteId
+            ? `${API}/sites/${siteId}/terrains`
+            : `${API}/terrains`;
+        const res = await fetch(url);
         const terrains = await res.json();
         const select = document.querySelector('#form-nouvelle-reservation select[name="terrain_id"]');
         select.innerHTML = '<option value="">-- Choisir un terrain --</option>';

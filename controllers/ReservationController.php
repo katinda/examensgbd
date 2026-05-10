@@ -55,8 +55,10 @@ class ReservationController {
 
 
     // GET /api/reservations/publiques → retourne les matches publics à venir avec places restantes
+    // GET /api/reservations/publiques?site_id=X → filtre par site (pour membres de site)
     public function getPubliques(): void {
-        $matches = $this->reservationService->getMatchesPublics();
+        $siteId = isset($_GET['site_id']) ? (int) $_GET['site_id'] : null;
+        $matches = $this->reservationService->getMatchesPublics($siteId);
         header('Content-Type: application/json');
         echo json_encode($matches, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }

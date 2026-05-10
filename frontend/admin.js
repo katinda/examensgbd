@@ -12,7 +12,14 @@ function initialiserAdmin() {
     }
 }
 
+// Retourne le site_id de l'admin connecté si SITE, null si GLOBAL.
+// Utilisé pour filtrer toutes les données selon le type d'admin.
+function siteIdAdmin() {
+    return adminConnecte?.type === 'SITE' ? adminConnecte.site_id : null;
+}
+
 // Affiche le dashboard admin et masque le formulaire de login.
+// Admin SITE → cache les sections globales (administrateurs, stats globales).
 function afficherDashboard() {
     document.getElementById('section-login-admin').style.display = 'none';
     document.getElementById('header-admin').style.display        = 'block';
@@ -24,17 +31,19 @@ function afficherDashboard() {
     document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
     document.getElementById('section-sites').style.display = 'block';
 
-    chargerSites();
-    chargerTerrains();
+    const siteId = siteIdAdmin();
+
+    chargerSites(siteId);
+    chargerTerrains(siteId);
     chargerMembres();
     chargerPenalites();
     chargerSitesDansHoraires();
-    chargerHoraires();
+    chargerHoraires(siteId);
     chargerSitesDansFermetures();
-    chargerFermetures();
+    chargerFermetures(siteId ? { site_id: siteId } : {});
     chargerAdministrateurs();
     chargerSitesDansStats();
-    chargerStats();
+    chargerStats(siteId ?? '');
 }
 
 // Connexion par nom uniquement — cherche l'admin par son nom et accède au dashboard.
@@ -132,11 +141,12 @@ function cacherErreur(id) {
 }
 
 // ── SITES ────────────────────────────────────────────────────
-// Appelle GET /sites et passe le résultat à afficherSites.
-async function chargerSites() {
+// Appelle GET /sites. Admin SITE → filtre sur son seul site.
+async function chargerSites(siteId = null) {
     try {
         const res = await fetch(`${API}/sites`);
-        const sites = await res.json();
+        let sites = await res.json();
+        if (siteId) sites = sites.filter(s => s.id === siteId);
         afficherSites(sites);
     } catch {
         afficherErreur('erreur-sites', 'Impossible de contacter le serveur.');
@@ -177,7 +187,7 @@ async function supprimerSite(id) {
         const res = await fetch(`${API}/sites/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-sites');
-        chargerSites();
+        chargerSites(siteIdAdmin());
     } catch {
         afficherErreur('erreur-sites', 'Erreur lors de la suppression.');
     }
@@ -215,17 +225,18 @@ document.getElementById('form-site').addEventListener('submit', async e => {
         form.style.display = 'none';
         form.reset();
         cacherErreur('erreur-sites');
-        chargerSites();
+        chargerSites(siteIdAdmin());
     } catch {
         afficherErreur('erreur-sites', 'Erreur lors de la création du site.');
     }
 });
 
 // ── TERRAINS ─────────────────────────────────────────────────
-// Appelle GET /terrains et passe le résultat à afficherTerrains.
-async function chargerTerrains() {
+// Appelle GET /terrains. Admin SITE → uniquement les terrains de son site.
+async function chargerTerrains(siteId = null) {
     try {
-        const res = await fetch(`${API}/terrains`);
+        const url = siteId ? `${API}/sites/${siteId}/terrains` : `${API}/terrains`;
+        const res = await fetch(url);
         const terrains = await res.json();
         afficherTerrains(terrains);
     } catch {
@@ -268,7 +279,7 @@ async function supprimerTerrain(id) {
         const res = await fetch(`${API}/terrains/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-terrains');
-        chargerTerrains();
+        chargerTerrains(siteIdAdmin());
     } catch {
         afficherErreur('erreur-terrains', 'Erreur lors de la suppression.');
     }
@@ -324,7 +335,7 @@ document.getElementById('form-terrain').addEventListener('submit', async e => {
         form.style.display = 'none';
         form.reset();
         cacherErreur('erreur-terrains');
-        chargerTerrains();
+        chargerTerrains(siteIdAdmin());
     } catch {
         afficherErreur('erreur-terrains', 'Erreur lors de la création du terrain.');
     }
