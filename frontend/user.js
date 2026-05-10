@@ -58,13 +58,8 @@ function connecterMembre(membre) {
     chargerTerrainsDansForm();
 }
 
-// Réinitialise la session et retourne à l'identification.
-document.getElementById('btn-deconnexion').addEventListener('click', () => {
-    membreConnecte = null;
-    document.getElementById('section-dashboard').style.display = 'none';
-    document.getElementById('section-identification').style.display = 'block';
-    document.getElementById('form-identification').reset();
-});
+// La déconnexion redirige vers index.html via le lien <a> dans user.html.
+// La session est réinitialisée automatiquement au rechargement de la page.
 
 // ── MES RÉSERVATIONS ─────────────────────────────────────────
 // Appelle GET /api/membres/:id/reservations et affiche les réservations du membre.
