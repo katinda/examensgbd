@@ -2,14 +2,16 @@
 const API = 'http://localhost:8000';
 
 // ── Navigation ──────────────────────────────────────────────
+// Cache toutes les sections au démarrage, puis affiche uniquement Sites.
+document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+document.getElementById('section-sites').style.display = 'block';
+
 // Gère les clics sur les boutons de navigation :
 // masque toutes les sections et affiche uniquement celle correspondant au bouton cliqué.
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('section-' + btn.dataset.section).classList.add('active');
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.getElementById('section-' + btn.dataset.section).style.display = 'block';
     });
 });
 
@@ -226,21 +228,29 @@ document.getElementById('form-terrain').addEventListener('submit', async e => {
 });
 
 // ── MEMBRES ──────────────────────────────────────────────────
-// Appelle GET /api/membres (avec filtre catégorie optionnel) et affiche le résultat.
+// Appelle GET /api/membres avec les filtres actifs (catégorie et/ou inactifs).
 async function chargerMembres(categorie = '') {
+    const inactifs = document.getElementById('filtre-inactifs').checked;
     try {
-        const url = categorie ? `${API}/api/membres?categorie=${categorie}` : `${API}/api/membres`;
+        let url;
+        if (inactifs) {
+            url = `${API}/api/membres?inactifs=1`;
+        } else if (categorie) {
+            url = `${API}/api/membres?categorie=${categorie}`;
+        } else {
+            url = `${API}/api/membres`;
+        }
         const res = await fetch(url);
         const membres = await res.json();
-        afficherMembres(membres);
+        afficherMembres(membres, inactifs);
     } catch {
         afficherErreur('erreur-membres', 'Impossible de contacter le serveur.');
     }
 }
 
 // Injecte les membres dans le tableau HTML.
-// Attache aussi les listeners de suppression sur chaque bouton généré.
-function afficherMembres(membres) {
+// Affiche "Désactiver" pour les actifs, "Réactiver" pour les inactifs.
+function afficherMembres(membres, inactifs = false) {
     const tbody = document.getElementById('tbody-membres');
 
     if (!membres.length) {
@@ -257,13 +267,20 @@ function afficherMembres(membres) {
             <td>${m.categorie}</td>
             <td>${m.email ?? '—'}</td>
             <td>
-                <button class="btn-supprimer" data-id="${m.id}">Désactiver</button>
+                ${inactifs
+                    ? `<button class="btn-reactiver" data-id="${m.id}">Réactiver</button>`
+                    : `<button class="btn-supprimer" data-id="${m.id}">Désactiver</button>`
+                }
             </td>
         </tr>
     `).join('');
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => desactiverMembre(btn.dataset.id));
+    });
+
+    tbody.querySelectorAll('.btn-reactiver').forEach(btn => {
+        btn.addEventListener('click', () => reactiverMembre(btn.dataset.id));
     });
 }
 
@@ -280,9 +297,31 @@ async function desactiverMembre(id) {
     }
 }
 
+// Appelle PUT /api/membres/:id avec est_actif: true, puis recharge la liste.
+async function reactiverMembre(id) {
+    if (!confirm('Réactiver ce membre ?')) return;
+    try {
+        const res = await fetch(`${API}/api/membres/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ est_actif: true }),
+        });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-membres');
+        chargerMembres(document.getElementById('filtre-categorie').value);
+    } catch {
+        afficherErreur('erreur-membres', 'Erreur lors de la réactivation.');
+    }
+}
+
 // Recharge la liste quand le filtre catégorie change.
 document.getElementById('filtre-categorie').addEventListener('change', e => {
     chargerMembres(e.target.value);
+});
+
+// Recharge la liste quand la checkbox inactifs change.
+document.getElementById('filtre-inactifs').addEventListener('change', () => {
+    chargerMembres(document.getElementById('filtre-categorie').value);
 });
 
 // Affiche le formulaire et charge les sites dans le select si catégorie S sélectionnée.

@@ -23,6 +23,13 @@ class MembreService {
     }
 
 
+    // Retourne tous les membres inactifs (désactivés par soft delete)
+    public function getInactifsMembres(): array {
+        $tous = $this->membreRepository->findAll();
+        return array_values(array_filter($tous, fn($m) => !$m->isEstActif()));
+    }
+
+
     // Retourne les membres actifs d'une catégorie (G, S ou L)
     public function getMembresByCategorie(string $categorie): array {
         $tous = $this->membreRepository->findByCategorie($categorie);

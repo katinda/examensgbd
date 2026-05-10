@@ -7,11 +7,14 @@ class MembreController {
     public function __construct(private MembreService $membreService) {}
 
 
-    // GET /api/membres ou GET /api/membres?categorie=G
+    // GET /api/membres, GET /api/membres?categorie=G, GET /api/membres?inactifs=1
     public function getAll(): void {
         $categorie = $_GET['categorie'] ?? null;
+        $inactifs  = isset($_GET['inactifs']) && $_GET['inactifs'] === '1';
 
-        if ($categorie !== null) {
+        if ($inactifs) {
+            $membres = $this->membreService->getInactifsMembres();
+        } elseif ($categorie !== null) {
             $membres = $this->membreService->getMembresByCategorie(strtoupper($categorie));
         } else {
             $membres = $this->membreService->getAllMembres();
