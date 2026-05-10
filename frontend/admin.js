@@ -37,31 +37,23 @@ function afficherDashboard() {
     chargerStats();
 }
 
-// Appelle POST /api/auth avec login + mot de passe.
+// Connexion par nom uniquement — cherche l'admin par son nom et accède au dashboard.
 document.getElementById('form-login-admin').addEventListener('submit', async e => {
     e.preventDefault();
-    const form = e.target;
-    const body = {
-        login:        form.login.value,
-        mot_de_passe: form.mot_de_passe.value,
-    };
+    const nom = e.target.nom.value.trim();
 
     try {
-        const res = await fetch(`${API}/api/auth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+        const res = await fetch(`${API}/api/administrateurs`);
+        const admins = await res.json();
+        const admin = admins.find(a => a.nom?.toLowerCase() === nom.toLowerCase());
 
-        if (res.status === 401 || res.status === 403) {
-            const data = await res.json();
-            document.getElementById('erreur-login-admin').textContent = data.erreur;
+        if (!admin) {
+            document.getElementById('erreur-login-admin').textContent = 'Nom introuvable.';
             document.getElementById('erreur-login-admin').style.display = 'block';
             return;
         }
 
-        if (!res.ok) throw new Error();
-        adminConnecte = await res.json();
+        adminConnecte = admin;
         sessionStorage.setItem('admin', JSON.stringify(adminConnecte));
         afficherDashboard();
     } catch {
@@ -76,16 +68,15 @@ document.querySelector('#form-inscription-admin select[name="type"]').addEventLi
         e.target.value === 'SITE' ? 'block' : 'none';
 });
 
-// Appelle POST /api/administrateurs pour créer un nouveau compte admin.
+// Inscription : crée un compte admin avec nom + type (sans mot de passe).
+// Utilise le nom comme login et un mot de passe vide par défaut.
 document.getElementById('form-inscription-admin').addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
     const body = {
-        login:        form.login.value,
-        mot_de_passe: form.mot_de_passe.value,
-        nom:          form.nom.value || undefined,
-        prenom:       form.prenom.value || undefined,
-        email:        form.email.value || undefined,
+        login:        form.nom.value,
+        mot_de_passe: 'padel2026',
+        nom:          form.nom.value,
         type:         form.type.value,
     };
     if (form.type.value === 'SITE') {
@@ -99,15 +90,15 @@ document.getElementById('form-inscription-admin').addEventListener('submit', asy
             body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error();
-        document.getElementById('erreur-inscription-admin').style.display  = 'none';
-        document.getElementById('succes-inscription-admin').textContent    = 'Compte créé ! Vous pouvez vous connecter.';
-        document.getElementById('succes-inscription-admin').style.display  = 'block';
+        document.getElementById('erreur-inscription-admin').style.display = 'none';
+        document.getElementById('succes-inscription-admin').textContent   = 'Compte créé ! Vous pouvez vous connecter.';
+        document.getElementById('succes-inscription-admin').style.display = 'block';
         form.reset();
         document.getElementById('label-site-inscription').style.display = 'none';
     } catch {
-        document.getElementById('succes-inscription-admin').style.display  = 'none';
-        document.getElementById('erreur-inscription-admin').textContent    = 'Erreur (login déjà utilisé ?)';
-        document.getElementById('erreur-inscription-admin').style.display  = 'block';
+        document.getElementById('succes-inscription-admin').style.display = 'none';
+        document.getElementById('erreur-inscription-admin').textContent   = 'Erreur (nom déjà utilisé ?)';
+        document.getElementById('erreur-inscription-admin').style.display = 'block';
     }
 });
 
