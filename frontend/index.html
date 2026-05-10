@@ -19,6 +19,7 @@
             <button class="nav-btn" data-section="horaires">Horaires</button>
             <button class="nav-btn" data-section="fermetures">Fermetures</button>
             <button class="nav-btn" data-section="administrateurs">Administrateurs</button>
+            <button class="nav-btn" data-section="paiements">Paiements</button>
         </nav>
     </header>
 
@@ -532,6 +533,61 @@
                     <tr><td colspan="7">Chargement…</td></tr>
                 </tbody>
             </table>
+        </section>
+
+        <!-- SECTION PAIEMENTS -->
+        <section id="section-paiements" class="section">
+            <div class="section-header">
+                <h2>Paiements</h2>
+            </div>
+
+            <!-- Recherche par inscription -->
+            <div>
+                <label>Paiement d'une inscription (ID) :
+                    <input type="number" id="filtre-inscription-id" placeholder="ID de l'inscription" min="1">
+                    <button id="btn-chercher-paiement">Chercher</button>
+                </label>
+            </div>
+
+            <!-- Formulaire création paiement -->
+            <form id="form-paiement" style="display:none">
+                <h3>Enregistrer un paiement</h3>
+                <p>Montant fixe : <strong>15.00 €</strong></p>
+                <label>Méthode
+                    <select name="methode">
+                        <option value="">-- Optionnel --</option>
+                        <option value="CARTE">Carte</option>
+                        <option value="VIREMENT">Virement</option>
+                        <option value="ESPECES">Espèces</option>
+                        <option value="MOBILE">Mobile</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Payer</button>
+                    <button type="button" id="btn-annuler-paiement">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-paiements" style="display:none;color:red"></p>
+
+            <!-- Résultat paiement -->
+            <div id="resultat-paiement" style="display:none">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Inscription</th>
+                            <th>Montant</th>
+                            <th>Méthode</th>
+                            <th>Date</th>
+                            <th>Annulé</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-paiement"></tbody>
+                </table>
+            </div>
         </section>
 
     </main>

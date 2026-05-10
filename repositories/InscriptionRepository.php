@@ -32,6 +32,15 @@ class InscriptionRepository {
     }
 
 
+    // Retourne une inscription par son ID, ou null si elle n'existe pas
+    public function findById(int $inscriptionId): ?Inscription {
+        $stmt = $this->pdo->prepare("SELECT * FROM Inscriptions WHERE Inscription_ID = :inscriptionId");
+        $stmt->execute([':inscriptionId' => $inscriptionId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $this->hydrateOne($row) : null;
+    }
+
+
     // Compte le nombre de joueurs déjà inscrits à une réservation.
     // Utilisé par le service pour refuser l'inscription si la réservation est déjà complète (4 joueurs).
     public function countByReservation(int $reservationId): int {

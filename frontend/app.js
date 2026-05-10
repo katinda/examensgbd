@@ -1177,6 +1177,108 @@ document.getElementById('form-admin').addEventListener('submit', async e => {
 
 // ── Init ─────────────────────────────────────────────────────
 // Chargement initial des données au démarrage de la page.
+// ── PAIEMENTS ─────────────────────────────────────────────────
+// Appelle GET /api/inscriptions/:id/paiement et affiche le résultat.
+async function chargerPaiement(inscriptionId) {
+    const resultat = document.getElementById('resultat-paiement');
+    const form     = document.getElementById('form-paiement');
+    resultat.style.display = 'none';
+    form.style.display     = 'none';
+
+    try {
+        const res = await fetch(`${API}/api/inscriptions/${inscriptionId}/paiement`);
+
+        if (res.status === 404) {
+            // Pas encore de paiement : affiche le formulaire de création.
+            form.style.display = 'block';
+            return;
+        }
+
+        if (!res.ok) throw new Error();
+        const paiement = await res.json();
+        afficherPaiement(paiement);
+    } catch {
+        afficherErreur('erreur-paiements', 'Inscription introuvable.');
+    }
+}
+
+// Injecte le paiement dans le tableau et attache le bouton d'annulation.
+function afficherPaiement(p) {
+    const tbody = document.getElementById('tbody-paiement');
+    tbody.innerHTML = `
+        <tr>
+            <td>${p.id}</td>
+            <td>${p.inscription_id}</td>
+            <td>${p.montant} €</td>
+            <td>${p.methode ?? '—'}</td>
+            <td>${p.date_paiement}</td>
+            <td>${p.est_annule ? 'Oui' : 'Non'}</td>
+            <td>
+                ${!p.est_annule
+                    ? `<button class="btn-supprimer" data-id="${p.id}">Annuler</button>`
+                    : '—'}
+            </td>
+        </tr>
+    `;
+
+    tbody.querySelector('.btn-supprimer')?.addEventListener('click', () => annulerPaiement(p.id));
+    document.getElementById('resultat-paiement').style.display = 'block';
+}
+
+// Appelle DELETE /api/paiements/:id après confirmation, puis recharge.
+async function annulerPaiement(paiementId) {
+    if (!confirm('Annuler ce paiement ?')) return;
+    try {
+        const res = await fetch(`${API}/api/paiements/${paiementId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-paiements');
+        const inscriptionId = document.getElementById('filtre-inscription-id').value;
+        chargerPaiement(inscriptionId);
+    } catch {
+        afficherErreur('erreur-paiements', 'Erreur lors de l\'annulation.');
+    }
+}
+
+// Lance la recherche quand on clique sur "Chercher".
+document.getElementById('btn-chercher-paiement').addEventListener('click', () => {
+    const inscriptionId = document.getElementById('filtre-inscription-id').value;
+    if (!inscriptionId) return;
+    cacherErreur('erreur-paiements');
+    chargerPaiement(inscriptionId);
+});
+
+// Cache le formulaire quand on clique sur "Annuler".
+document.getElementById('btn-annuler-paiement').addEventListener('click', () => {
+    document.getElementById('form-paiement').style.display = 'none';
+    document.getElementById('form-paiement').reset();
+});
+
+// Appelle POST /api/inscriptions/:id/paiement avec montant fixe 15.00, puis recharge.
+document.getElementById('form-paiement').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const inscriptionId = document.getElementById('filtre-inscription-id').value;
+    const body = { montant: 15.00 };
+    if (form.methode.value) body.methode = form.methode.value;
+
+    try {
+        const res = await fetch(`${API}/api/inscriptions/${inscriptionId}/paiement`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-paiements');
+        chargerPaiement(inscriptionId);
+    } catch {
+        afficherErreur('erreur-paiements', 'Erreur lors du paiement (déjà payé ?).');
+    }
+});
+
+// ── Init ─────────────────────────────────────────────────────
+// Chargement initial des données au démarrage de la page.
 chargerSites();
 chargerTerrains();
 chargerMembres();
