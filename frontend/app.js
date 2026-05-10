@@ -677,6 +677,121 @@ document.getElementById('form-penalite').addEventListener('submit', async e => {
     }
 });
 
+// ── INSCRIPTIONS ─────────────────────────────────────────────
+// Appelle GET /api/reservations/:id/inscriptions et affiche les joueurs inscrits.
+async function chargerInscriptions(reservationId) {
+    try {
+        const res = await fetch(`${API}/api/reservations/${reservationId}/inscriptions`);
+        if (!res.ok) throw new Error();
+        const inscriptions = await res.json();
+        afficherInscriptions(inscriptions, reservationId);
+    } catch {
+        afficherErreur('erreur-inscriptions', 'Réservation introuvable.');
+    }
+}
+
+// Injecte les joueurs inscrits dans le tableau HTML.
+// Attache les listeners de retrait sur chaque bouton généré.
+function afficherInscriptions(inscriptions, reservationId) {
+    const tbody = document.getElementById('tbody-inscriptions');
+
+    if (!inscriptions.length) {
+        tbody.innerHTML = '<tr><td colspan="5">Aucun joueur inscrit.</td></tr>';
+        document.getElementById('form-inscription').style.display = 'block';
+        chargerMembresDansInscription();
+        return;
+    }
+
+    tbody.innerHTML = inscriptions.map(i => `
+        <tr>
+            <td>${i.membre_id ?? i.id}</td>
+            <td>${i.nom ?? '—'}</td>
+            <td>${i.prenom ?? '—'}</td>
+            <td>${i.matricule ?? '—'}</td>
+            <td>
+                <button class="btn-supprimer" data-membre="${i.membre_id ?? i.id}">Retirer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => retirerJoueur(reservationId, btn.dataset.membre));
+    });
+
+    // Affiche le formulaire d'ajout après le tableau.
+    document.getElementById('form-inscription').style.display = 'block';
+    chargerMembresDansInscription();
+}
+
+// Appelle DELETE /api/reservations/:id/inscriptions/:membre_id après confirmation.
+async function retirerJoueur(reservationId, membreId) {
+    if (!confirm('Retirer ce joueur de la réservation ?')) return;
+    try {
+        const res = await fetch(`${API}/api/reservations/${reservationId}/inscriptions/${membreId}`, {
+            method: 'DELETE',
+        });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-inscriptions');
+        chargerInscriptions(reservationId);
+    } catch {
+        afficherErreur('erreur-inscriptions', 'Erreur lors du retrait du joueur.');
+    }
+}
+
+// Remplit le select membre du formulaire d'inscription.
+async function chargerMembresDansInscription() {
+    try {
+        const res = await fetch(`${API}/api/membres`);
+        const membres = await res.json();
+        const select = document.querySelector('#form-inscription select[name="membre_id"]');
+        select.innerHTML = '<option value="">-- Choisir un membre --</option>';
+        membres.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.nom} ${m.prenom} (${m.matricule})`;
+            select.appendChild(opt);
+        });
+    } catch {
+        afficherErreur('erreur-inscriptions', 'Impossible de charger les membres.');
+    }
+}
+
+// Lance la recherche quand on clique sur "Chercher".
+document.getElementById('btn-chercher-inscription').addEventListener('click', () => {
+    const reservationId = document.getElementById('filtre-reservation-id').value;
+    if (!reservationId) return;
+    cacherErreur('erreur-inscriptions');
+    chargerInscriptions(reservationId);
+});
+
+// Cache et réinitialise le formulaire d'ajout.
+document.getElementById('btn-annuler-inscription').addEventListener('click', () => {
+    document.getElementById('form-inscription').style.display = 'none';
+    document.getElementById('form-inscription').reset();
+});
+
+// Appelle POST /api/reservations/:id/inscriptions avec le membre_id, puis recharge.
+document.getElementById('form-inscription').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const reservationId = document.getElementById('filtre-reservation-id').value;
+    const body = { membre_id: parseInt(form.membre_id.value) };
+
+    try {
+        const res = await fetch(`${API}/api/reservations/${reservationId}/inscriptions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.reset();
+        cacherErreur('erreur-inscriptions');
+        chargerInscriptions(reservationId);
+    } catch {
+        afficherErreur('erreur-inscriptions', 'Erreur lors de l\'inscription (joueur déjà inscrit ?).');
+    }
+});
+
 // ── Init ─────────────────────────────────────────────────────
 // Chargement initial des sites, terrains, membres et pénalités au démarrage de la page.
 chargerSites();

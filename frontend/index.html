@@ -15,6 +15,7 @@
             <button class="nav-btn" data-section="membres">Membres</button>
             <button class="nav-btn" data-section="reservations">Réservations</button>
             <button class="nav-btn" data-section="penalites">Pénalités</button>
+            <button class="nav-btn" data-section="inscriptions">Inscriptions</button>
         </nav>
     </header>
 
@@ -311,6 +312,54 @@
                 </thead>
                 <tbody id="tbody-penalites">
                     <tr><td colspan="7">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION INSCRIPTIONS -->
+        <section id="section-inscriptions" class="section">
+            <div class="section-header">
+                <h2>Inscriptions</h2>
+            </div>
+
+            <!-- Recherche par réservation -->
+            <div>
+                <label>Joueurs d'une réservation (ID) :
+                    <input type="number" id="filtre-reservation-id" placeholder="ID de la réservation" min="1">
+                    <button id="btn-chercher-inscription">Chercher</button>
+                </label>
+            </div>
+
+            <!-- Formulaire ajout joueur -->
+            <form id="form-inscription" style="display:none">
+                <h3>Ajouter un joueur</h3>
+                <label>Membre
+                    <select name="membre_id" required>
+                        <option value="">-- Choisir un membre --</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Inscrire</button>
+                    <button type="button" id="btn-annuler-inscription">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-inscriptions" style="display:none;color:red"></p>
+
+            <!-- Liste des joueurs inscrits -->
+            <table id="table-inscriptions">
+                <thead>
+                    <tr>
+                        <th>Membre ID</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Matricule</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-inscriptions">
+                    <tr><td colspan="5">Entrez un ID de réservation pour voir les joueurs inscrits.</td></tr>
                 </tbody>
             </table>
         </section>
