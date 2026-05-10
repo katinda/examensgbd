@@ -50,6 +50,23 @@ class ReservationRepository {
     }
 
 
+    // Retourne les réservations publiques à venir avec le nombre de joueurs inscrits.
+    // Utilisé par l'interface joueur pour afficher les matches publics disponibles.
+    public function findPubliques(): array {
+        $stmt = $this->pdo->query("
+            SELECT r.*, COUNT(i.Inscription_ID) AS nb_inscrits
+            FROM Reservations r
+            LEFT JOIN Inscriptions i ON i.Reservation_ID = r.Reservation_ID
+            WHERE r.Type = 'PUBLIC'
+              AND r.Date_Match >= CURDATE()
+            GROUP BY r.Reservation_ID
+            HAVING nb_inscrits < 4
+            ORDER BY r.Date_Match ASC, r.Heure_Debut ASC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+
     // Crée une nouvelle réservation et retourne son ID généré par MySQL
     public function insert(Reservation $reservation): int {
         $stmt = $this->pdo->prepare("

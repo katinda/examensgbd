@@ -38,6 +38,21 @@ class ReservationService {
     }
 
 
+    // Retourne les matches publics à venir avec places restantes (< 4 joueurs inscrits).
+    public function getMatchesPublics(): array {
+        $rows = $this->reservationRepository->findPubliques();
+        return array_map(fn($row) => [
+            'id'              => (int) $row['Reservation_ID'],
+            'terrain_id'      => (int) $row['Terrain_ID'],
+            'organisateur_id' => (int) $row['Organisateur_ID'],
+            'date_match'      => $row['Date_Match'],
+            'heure_debut'     => $row['Heure_Debut'],
+            'heure_fin'       => $row['Heure_Fin'],
+            'places_restantes' => 4 - (int) $row['nb_inscrits'],
+        ], $rows);
+    }
+
+
     // Crée une nouvelle réservation — version minimale.
     //
     // Validations effectuées :

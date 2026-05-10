@@ -142,6 +142,10 @@ if ($method === 'GET' && $uri === '/sites') {
 } elseif ($method === 'DELETE' && preg_match('#^/api/reservations/(\d+)/inscriptions/(\d+)$#', $uri, $matches)) {
     $inscriptionController->removeJoueur((int) $matches[1], (int) $matches[2]);
 
+// GET /api/reservations/publiques → retourne les matches publics à venir avec places restantes
+} elseif ($method === 'GET' && $uri === '/api/reservations/publiques') {
+    $reservationController->getPubliques();
+
 // GET /api/reservations/{id} → retourne une réservation par son ID
 } elseif ($method === 'GET' && preg_match('#^/api/reservations/(\d+)$#', $uri, $matches)) {
     $reservationController->getById((int) $matches[1]);

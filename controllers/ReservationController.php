@@ -54,6 +54,14 @@ class ReservationController {
     }
 
 
+    // GET /api/reservations/publiques → retourne les matches publics à venir avec places restantes
+    public function getPubliques(): void {
+        $matches = $this->reservationService->getMatchesPublics();
+        header('Content-Type: application/json');
+        echo json_encode($matches, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+
     // POST /api/reservations → crée une nouvelle réservation
     // Codes possibles : 201 (créé), 400 (champs manquants ou terrain inactif), 404 (terrain/membre introuvable), 409 (créneau pris)
     public function create(): void {
