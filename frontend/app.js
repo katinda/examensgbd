@@ -792,9 +792,277 @@ document.getElementById('form-inscription').addEventListener('submit', async e =
     }
 });
 
+// ── HORAIRES ─────────────────────────────────────────────────
+// Appelle GET /api/horaires (avec filtre site_id optionnel) et affiche le résultat.
+async function chargerHoraires(siteId = '') {
+    try {
+        const url = siteId ? `${API}/api/horaires?site_id=${siteId}` : `${API}/api/horaires`;
+        const res = await fetch(url);
+        const horaires = await res.json();
+        afficherHoraires(horaires);
+    } catch {
+        afficherErreur('erreur-horaires', 'Impossible de contacter le serveur.');
+    }
+}
+
+// Injecte les horaires dans le tableau HTML.
+// Attache les listeners de suppression sur chaque bouton généré.
+function afficherHoraires(horaires) {
+    const tbody = document.getElementById('tbody-horaires');
+
+    if (!horaires.length) {
+        tbody.innerHTML = '<tr><td colspan="6">Aucun horaire.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = horaires.map(h => `
+        <tr>
+            <td>${h.id}</td>
+            <td>${h.site_id}</td>
+            <td>${h.annee}</td>
+            <td>${h.heure_debut}</td>
+            <td>${h.heure_fin}</td>
+            <td>
+                <button class="btn-supprimer" data-id="${h.id}">Supprimer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => supprimerHoraire(btn.dataset.id));
+    });
+}
+
+// Appelle DELETE /api/horaires/:id après confirmation, puis recharge la liste.
+async function supprimerHoraire(id) {
+    if (!confirm('Supprimer cet horaire ?')) return;
+    try {
+        const res = await fetch(`${API}/api/horaires/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-horaires');
+        chargerHoraires(document.getElementById('filtre-horaire-site').value);
+    } catch {
+        afficherErreur('erreur-horaires', 'Erreur lors de la suppression.');
+    }
+}
+
+// Remplit les selects de site pour horaires (filtre + formulaire).
+async function chargerSitesDansHoraires() {
+    try {
+        const res = await fetch(`${API}/sites`);
+        const sites = await res.json();
+
+        const filtre = document.getElementById('filtre-horaire-site');
+        filtre.innerHTML = '<option value="">Tous les sites</option>';
+
+        const selectForm = document.querySelector('#form-horaire select[name="site_id"]');
+        selectForm.innerHTML = '<option value="">-- Choisir un site --</option>';
+
+        sites.forEach(s => {
+            const label = `${s.nom} (${s.ville ?? s.id})`;
+            [filtre, selectForm].forEach(sel => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
+        });
+    } catch {
+        afficherErreur('erreur-horaires', 'Impossible de charger les sites.');
+    }
+}
+
+// Recharge les horaires quand le filtre site change.
+document.getElementById('filtre-horaire-site').addEventListener('change', e => {
+    chargerHoraires(e.target.value);
+});
+
+// Affiche le formulaire de création.
+document.getElementById('btn-nouvel-horaire').addEventListener('click', () => {
+    document.getElementById('form-horaire').style.display = 'block';
+});
+
+// Cache et réinitialise le formulaire.
+document.getElementById('btn-annuler-horaire').addEventListener('click', () => {
+    document.getElementById('form-horaire').style.display = 'none';
+    document.getElementById('form-horaire').reset();
+});
+
+// Appelle POST /api/horaires avec les données du formulaire, puis recharge la liste.
+document.getElementById('form-horaire').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        site_id:     parseInt(form.site_id.value),
+        annee:       parseInt(form.annee.value),
+        heure_debut: form.heure_debut.value + ':00',
+        heure_fin:   form.heure_fin.value + ':00',
+    };
+
+    try {
+        const res = await fetch(`${API}/api/horaires`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-horaires');
+        chargerHoraires(document.getElementById('filtre-horaire-site').value);
+    } catch {
+        afficherErreur('erreur-horaires', 'Erreur lors de la création (doublon site+année ?).');
+    }
+});
+
+// ── FERMETURES ───────────────────────────────────────────────
+// Appelle GET /api/fermetures (avec filtres optionnels) et affiche le résultat.
+async function chargerFermetures(params = {}) {
+    try {
+        const query = new URLSearchParams(params).toString();
+        const url = query ? `${API}/api/fermetures?${query}` : `${API}/api/fermetures`;
+        const res = await fetch(url);
+        const fermetures = await res.json();
+        afficherFermetures(fermetures);
+    } catch {
+        afficherErreur('erreur-fermetures', 'Impossible de contacter le serveur.');
+    }
+}
+
+// Injecte les fermetures dans le tableau HTML.
+// Attache les listeners de suppression sur chaque bouton généré.
+function afficherFermetures(fermetures) {
+    const tbody = document.getElementById('tbody-fermetures');
+
+    if (!fermetures.length) {
+        tbody.innerHTML = '<tr><td colspan="6">Aucune fermeture.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = fermetures.map(f => `
+        <tr>
+            <td>${f.id}</td>
+            <td>${f.site_id ? f.site_id : 'Globale'}</td>
+            <td>${f.date_debut}</td>
+            <td>${f.date_fin}</td>
+            <td>${f.raison ?? '—'}</td>
+            <td>
+                <button class="btn-supprimer" data-id="${f.id}">Supprimer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => supprimerFermeture(btn.dataset.id));
+    });
+}
+
+// Appelle DELETE /api/fermetures/:id après confirmation, puis recharge la liste.
+async function supprimerFermeture(id) {
+    if (!confirm('Supprimer cette fermeture ?')) return;
+    try {
+        const res = await fetch(`${API}/api/fermetures/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-fermetures');
+        chargerFermetures(filtresFermeturesActuels());
+    } catch {
+        afficherErreur('erreur-fermetures', 'Erreur lors de la suppression.');
+    }
+}
+
+// Retourne les paramètres de filtre fermetures actuellement actifs.
+function filtresFermeturesActuels() {
+    const params = {};
+    const siteId   = document.getElementById('filtre-fermeture-site').value;
+    const globales = document.getElementById('filtre-fermetures-globales').checked;
+    if (siteId)   params.site_id  = siteId;
+    if (globales) params.globales = 1;
+    return params;
+}
+
+// Remplit les selects de site pour fermetures (filtre + formulaire).
+async function chargerSitesDansFermetures() {
+    try {
+        const res = await fetch(`${API}/sites`);
+        const sites = await res.json();
+
+        const filtre = document.getElementById('filtre-fermeture-site');
+        filtre.innerHTML = '<option value="">Tous les sites</option>';
+
+        const selectForm = document.querySelector('#form-fermeture select[name="site_id"]');
+        selectForm.innerHTML = '<option value="">-- Globale (tous les sites) --</option>';
+
+        sites.forEach(s => {
+            const label = `${s.nom} (${s.ville ?? s.id})`;
+            [filtre, selectForm].forEach(sel => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
+        });
+    } catch {
+        afficherErreur('erreur-fermetures', 'Impossible de charger les sites.');
+    }
+}
+
+// Recharge les fermetures quand le filtre site change.
+document.getElementById('filtre-fermeture-site').addEventListener('change', () => {
+    chargerFermetures(filtresFermeturesActuels());
+});
+
+// Recharge les fermetures quand la checkbox globales change.
+document.getElementById('filtre-fermetures-globales').addEventListener('change', () => {
+    chargerFermetures(filtresFermeturesActuels());
+});
+
+// Affiche le formulaire de création.
+document.getElementById('btn-nouvelle-fermeture').addEventListener('click', () => {
+    document.getElementById('form-fermeture').style.display = 'block';
+});
+
+// Cache et réinitialise le formulaire.
+document.getElementById('btn-annuler-fermeture').addEventListener('click', () => {
+    document.getElementById('form-fermeture').style.display = 'none';
+    document.getElementById('form-fermeture').reset();
+});
+
+// Appelle POST /api/fermetures avec les données du formulaire, puis recharge la liste.
+document.getElementById('form-fermeture').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        date_debut: form.date_debut.value,
+        date_fin:   form.date_fin.value,
+        raison:     form.raison.value || undefined,
+    };
+    if (form.site_id.value) {
+        body.site_id = parseInt(form.site_id.value);
+    }
+
+    try {
+        const res = await fetch(`${API}/api/fermetures`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-fermetures');
+        chargerFermetures();
+    } catch {
+        afficherErreur('erreur-fermetures', 'Erreur lors de la création.');
+    }
+});
+
 // ── Init ─────────────────────────────────────────────────────
-// Chargement initial des sites, terrains, membres et pénalités au démarrage de la page.
+// Chargement initial des données au démarrage de la page.
 chargerSites();
 chargerTerrains();
 chargerMembres();
 chargerPenalites();
+chargerSitesDansHoraires();
+chargerHoraires();
+chargerSitesDansFermetures();
+chargerFermetures();

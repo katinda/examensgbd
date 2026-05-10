@@ -16,6 +16,8 @@
             <button class="nav-btn" data-section="reservations">Réservations</button>
             <button class="nav-btn" data-section="penalites">Pénalités</button>
             <button class="nav-btn" data-section="inscriptions">Inscriptions</button>
+            <button class="nav-btn" data-section="horaires">Horaires</button>
+            <button class="nav-btn" data-section="fermetures">Fermetures</button>
         </nav>
     </header>
 
@@ -360,6 +362,118 @@
                 </thead>
                 <tbody id="tbody-inscriptions">
                     <tr><td colspan="5">Entrez un ID de réservation pour voir les joueurs inscrits.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION HORAIRES -->
+        <section id="section-horaires" class="section">
+            <div class="section-header">
+                <h2>Horaires</h2>
+                <button id="btn-nouvel-horaire">+ Nouvel horaire</button>
+            </div>
+
+            <!-- Filtre par site -->
+            <div>
+                <label>Filtrer par site :
+                    <select id="filtre-horaire-site">
+                        <option value="">Tous les sites</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-horaire" style="display:none">
+                <h3>Nouvel horaire</h3>
+                <label>Site
+                    <select name="site_id" required>
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <label>Année <input type="number" name="annee" min="2024" max="2099" required placeholder="2026"></label>
+                <label>Heure début <input type="time" name="heure_debut" required></label>
+                <label>Heure fin <input type="time" name="heure_fin" required></label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-horaire">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-horaires" style="display:none;color:red"></p>
+
+            <!-- Liste des horaires -->
+            <table id="table-horaires">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Site</th>
+                        <th>Année</th>
+                        <th>Heure début</th>
+                        <th>Heure fin</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-horaires">
+                    <tr><td colspan="6">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION FERMETURES -->
+        <section id="section-fermetures" class="section">
+            <div class="section-header">
+                <h2>Fermetures</h2>
+                <button id="btn-nouvelle-fermeture">+ Nouvelle fermeture</button>
+            </div>
+
+            <!-- Filtres -->
+            <div>
+                <label>Filtrer par site :
+                    <select id="filtre-fermeture-site">
+                        <option value="">Tous les sites</option>
+                    </select>
+                </label>
+                <label>
+                    <input type="checkbox" id="filtre-fermetures-globales">
+                    Globales uniquement
+                </label>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-fermeture" style="display:none">
+                <h3>Nouvelle fermeture</h3>
+                <label>Site (laisser vide pour fermeture globale)
+                    <select name="site_id">
+                        <option value="">-- Globale (tous les sites) --</option>
+                    </select>
+                </label>
+                <label>Date début <input type="date" name="date_debut" required></label>
+                <label>Date fin <input type="date" name="date_fin" required></label>
+                <label>Raison <input type="text" name="raison"></label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-fermeture">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-fermetures" style="display:none;color:red"></p>
+
+            <!-- Liste des fermetures -->
+            <table id="table-fermetures">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Site</th>
+                        <th>Date début</th>
+                        <th>Date fin</th>
+                        <th>Raison</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-fermetures">
+                    <tr><td colspan="6">Chargement…</td></tr>
                 </tbody>
             </table>
         </section>
