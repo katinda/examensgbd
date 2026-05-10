@@ -18,6 +18,7 @@
             <button class="nav-btn" data-section="inscriptions">Inscriptions</button>
             <button class="nav-btn" data-section="horaires">Horaires</button>
             <button class="nav-btn" data-section="fermetures">Fermetures</button>
+            <button class="nav-btn" data-section="administrateurs">Administrateurs</button>
         </nav>
     </header>
 
@@ -474,6 +475,61 @@
                 </thead>
                 <tbody id="tbody-fermetures">
                     <tr><td colspan="6">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION ADMINISTRATEURS -->
+        <section id="section-administrateurs" class="section">
+            <div class="section-header">
+                <h2>Administrateurs</h2>
+                <button id="btn-nouvel-admin">+ Nouvel administrateur</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-admin" style="display:none">
+                <h3>Nouvel administrateur</h3>
+                <label>Login <input type="text" name="login" required></label>
+                <label>Mot de passe <input type="password" name="mot_de_passe" required></label>
+                <label>Nom <input type="text" name="nom"></label>
+                <label>Prénom <input type="text" name="prenom"></label>
+                <label>Email <input type="email" name="email"></label>
+                <label>Type
+                    <select name="type" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="GLOBAL">Global</option>
+                        <option value="SITE">Site</option>
+                    </select>
+                </label>
+                <label id="label-site-admin" style="display:none">Site
+                    <select name="site_id">
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-admin">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-administrateurs" style="display:none;color:red"></p>
+
+            <!-- Liste des administrateurs -->
+            <table id="table-administrateurs">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Login</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Type</th>
+                        <th>Site</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-administrateurs">
+                    <tr><td colspan="7">Chargement…</td></tr>
                 </tbody>
             </table>
         </section>

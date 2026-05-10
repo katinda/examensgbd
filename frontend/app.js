@@ -1056,6 +1056,125 @@ document.getElementById('form-fermeture').addEventListener('submit', async e => 
     }
 });
 
+// ── ADMINISTRATEURS ───────────────────────────────────────────
+// Appelle GET /api/administrateurs et affiche le résultat.
+async function chargerAdministrateurs() {
+    try {
+        const res = await fetch(`${API}/api/administrateurs`);
+        const admins = await res.json();
+        afficherAdministrateurs(admins);
+    } catch {
+        afficherErreur('erreur-administrateurs', 'Impossible de contacter le serveur.');
+    }
+}
+
+// Injecte les administrateurs dans le tableau HTML.
+// Attache les listeners de désactivation sur chaque bouton généré.
+function afficherAdministrateurs(admins) {
+    const tbody = document.getElementById('tbody-administrateurs');
+
+    if (!admins.length) {
+        tbody.innerHTML = '<tr><td colspan="7">Aucun administrateur.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = admins.map(a => `
+        <tr>
+            <td>${a.id}</td>
+            <td>${a.login}</td>
+            <td>${a.nom ?? '—'}</td>
+            <td>${a.prenom ?? '—'}</td>
+            <td>${a.type}</td>
+            <td>${a.site_id ? a.site_id : 'Global'}</td>
+            <td>
+                <button class="btn-supprimer" data-id="${a.id}">Désactiver</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
+        btn.addEventListener('click', () => desactiverAdmin(btn.dataset.id));
+    });
+}
+
+// Appelle DELETE /api/administrateurs/:id après confirmation, puis recharge la liste.
+async function desactiverAdmin(id) {
+    if (!confirm('Désactiver cet administrateur ?')) return;
+    try {
+        const res = await fetch(`${API}/api/administrateurs/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-administrateurs');
+        chargerAdministrateurs();
+    } catch {
+        afficherErreur('erreur-administrateurs', 'Erreur lors de la désactivation.');
+    }
+}
+
+// Affiche ou cache le select site selon le type choisi (obligatoire pour SITE).
+document.querySelector('#form-admin select[name="type"]').addEventListener('change', async e => {
+    const labelSite = document.getElementById('label-site-admin');
+    if (e.target.value === 'SITE') {
+        labelSite.style.display = 'block';
+        const res = await fetch(`${API}/sites`);
+        const sites = await res.json();
+        const select = labelSite.querySelector('select');
+        select.innerHTML = '<option value="">-- Choisir un site --</option>';
+        sites.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            select.appendChild(opt);
+        });
+    } else {
+        labelSite.style.display = 'none';
+    }
+});
+
+// Affiche le formulaire de création.
+document.getElementById('btn-nouvel-admin').addEventListener('click', () => {
+    document.getElementById('form-admin').style.display = 'block';
+});
+
+// Cache et réinitialise le formulaire.
+document.getElementById('btn-annuler-admin').addEventListener('click', () => {
+    document.getElementById('form-admin').style.display = 'none';
+    document.getElementById('form-admin').reset();
+    document.getElementById('label-site-admin').style.display = 'none';
+});
+
+// Appelle POST /api/administrateurs avec les données du formulaire, puis recharge la liste.
+document.getElementById('form-admin').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const body = {
+        login:       form.login.value,
+        mot_de_passe: form.mot_de_passe.value,
+        nom:         form.nom.value || undefined,
+        prenom:      form.prenom.value || undefined,
+        email:       form.email.value || undefined,
+        type:        form.type.value,
+    };
+    if (form.type.value === 'SITE') {
+        body.site_id = parseInt(form.site_id.value);
+    }
+
+    try {
+        const res = await fetch(`${API}/api/administrateurs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        document.getElementById('label-site-admin').style.display = 'none';
+        cacherErreur('erreur-administrateurs');
+        chargerAdministrateurs();
+    } catch {
+        afficherErreur('erreur-administrateurs', 'Erreur lors de la création (login déjà utilisé ?).');
+    }
+});
+
 // ── Init ─────────────────────────────────────────────────────
 // Chargement initial des données au démarrage de la page.
 chargerSites();
@@ -1066,3 +1185,4 @@ chargerSitesDansHoraires();
 chargerHoraires();
 chargerSitesDansFermetures();
 chargerFermetures();
+chargerAdministrateurs();
