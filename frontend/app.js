@@ -1097,19 +1097,22 @@ document.getElementById('form-fermeture').addEventListener('submit', async e => 
 
 // ── ADMINISTRATEURS ───────────────────────────────────────────
 // Appelle GET /api/administrateurs et affiche le résultat.
+// Appelle GET /api/administrateurs (avec filtre inactifs optionnel) et affiche le résultat.
 async function chargerAdministrateurs() {
+    const inactifs = document.getElementById('filtre-admin-inactifs').checked;
     try {
-        const res = await fetch(`${API}/api/administrateurs`);
+        const url = inactifs ? `${API}/api/administrateurs?inactifs=1` : `${API}/api/administrateurs`;
+        const res = await fetch(url);
         const admins = await res.json();
-        afficherAdministrateurs(admins);
+        afficherAdministrateurs(admins, inactifs);
     } catch {
         afficherErreur('erreur-administrateurs', 'Impossible de contacter le serveur.');
     }
 }
 
 // Injecte les administrateurs dans le tableau HTML.
-// Attache les listeners de désactivation sur chaque bouton généré.
-function afficherAdministrateurs(admins) {
+// Affiche "Désactiver" pour les actifs, "Réactiver" pour les inactifs.
+function afficherAdministrateurs(admins, inactifs = false) {
     const tbody = document.getElementById('tbody-administrateurs');
 
     if (!admins.length) {
@@ -1126,13 +1129,20 @@ function afficherAdministrateurs(admins) {
             <td>${a.type}</td>
             <td>${a.site_id ? a.site_id : 'Global'}</td>
             <td>
-                <button class="btn-supprimer" data-id="${a.id}">Désactiver</button>
+                ${inactifs
+                    ? `<button class="btn-reactiver" data-id="${a.id}">Réactiver</button>`
+                    : `<button class="btn-supprimer" data-id="${a.id}">Désactiver</button>`
+                }
             </td>
         </tr>
     `).join('');
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => desactiverAdmin(btn.dataset.id));
+    });
+
+    tbody.querySelectorAll('.btn-reactiver').forEach(btn => {
+        btn.addEventListener('click', () => reactiverAdmin(btn.dataset.id));
     });
 }
 
@@ -1148,6 +1158,28 @@ async function desactiverAdmin(id) {
         afficherErreur('erreur-administrateurs', 'Erreur lors de la désactivation.');
     }
 }
+
+// Appelle PUT /api/administrateurs/:id avec est_actif: true, puis recharge la liste.
+async function reactiverAdmin(id) {
+    if (!confirm('Réactiver cet administrateur ?')) return;
+    try {
+        const res = await fetch(`${API}/api/administrateurs/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ est_actif: true }),
+        });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-administrateurs');
+        chargerAdministrateurs();
+    } catch {
+        afficherErreur('erreur-administrateurs', 'Erreur lors de la réactivation.');
+    }
+}
+
+// Recharge la liste quand la checkbox inactifs change.
+document.getElementById('filtre-admin-inactifs').addEventListener('change', () => {
+    chargerAdministrateurs();
+})
 
 // Affiche ou cache le select site selon le type choisi (obligatoire pour SITE).
 document.querySelector('#form-admin select[name="type"]').addEventListener('change', async e => {

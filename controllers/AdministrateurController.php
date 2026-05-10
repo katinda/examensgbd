@@ -7,9 +7,12 @@ class AdministrateurController {
     public function __construct(private AdministrateurService $adminService) {}
 
 
-    // GET /api/administrateurs
+    // GET /api/administrateurs, GET /api/administrateurs?inactifs=1
     public function getAll(): void {
-        $admins = $this->adminService->getAllAdministrateurs();
+        $inactifs = isset($_GET['inactifs']) && $_GET['inactifs'] === '1';
+        $admins   = $inactifs
+            ? $this->adminService->getInactifsAdministrateurs()
+            : $this->adminService->getAllAdministrateurs();
 
         header('Content-Type: application/json');
         echo json_encode(array_map(fn($a) => $this->toArray($a), $admins), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

@@ -18,6 +18,13 @@ class AdministrateurService {
     }
 
 
+    // Retourne tous les administrateurs inactifs (désactivés par soft delete)
+    public function getInactifsAdministrateurs(): array {
+        $tous = $this->adminRepository->findAll();
+        return array_values(array_filter($tous, fn($a) => !$a->isEstActif()));
+    }
+
+
     // Retourne un administrateur actif par son ID, ou null s'il est inactif ou inexistant
     public function getAdministrateurById(int $id): ?Administrateur {
         $admin = $this->adminRepository->findById($id);
