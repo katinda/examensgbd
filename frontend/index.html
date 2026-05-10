@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Manager</title>
+</head>
+<body>
+
+    <header>
+        <h1>Padel Manager</h1>
+        <nav>
+            <button class="nav-btn active" data-section="sites">Sites</button>
+            <button class="nav-btn" data-section="terrains">Terrains</button>
+            <button class="nav-btn" data-section="membres">Membres</button>
+            <button class="nav-btn" data-section="reservations">Réservations</button>
+            <button class="nav-btn" data-section="penalites">Pénalités</button>
+            <button class="nav-btn" data-section="inscriptions">Inscriptions</button>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- SECTION SITES -->
+        <section id="section-sites" class="section active">
+            <div class="section-header">
+                <h2>Sites</h2>
+                <button id="btn-nouveau-site">+ Nouveau site</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-site" style="display:none">
+                <h3>Nouveau site</h3>
+                <label>Nom <input type="text" name="nom" required></label>
+                <label>Adresse <input type="text" name="adresse"></label>
+                <label>Ville <input type="text" name="ville"></label>
+                <label>Code postal <input type="text" name="code_postal"></label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-site">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-sites" style="display:none;color:red"></p>
+
+            <!-- Liste des sites -->
+            <table id="table-sites">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Ville</th>
+                        <th>Code postal</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-sites">
+                    <tr><td colspan="5">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION TERRAINS -->
+        <section id="section-terrains" class="section">
+            <div class="section-header">
+                <h2>Terrains</h2>
+                <button id="btn-nouveau-terrain">+ Nouveau terrain</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-terrain" style="display:none">
+                <h3>Nouveau terrain</h3>
+                <label>Site
+                    <select name="site_id" required>
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <label>Numéro de terrain <input type="number" name="num_terrain" min="1" required></label>
+                <label>Libellé <input type="text" name="libelle"></label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-terrain">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-terrains" style="display:none;color:red"></p>
+
+            <!-- Liste des terrains -->
+            <table id="table-terrains">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Site</th>
+                        <th>N° terrain</th>
+                        <th>Libellé</th>
+                        <th>Actif</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-terrains">
+                    <tr><td colspan="6">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION MEMBRES -->
+        <section id="section-membres" class="section">
+            <div class="section-header">
+                <h2>Membres</h2>
+                <button id="btn-nouveau-membre">+ Nouveau membre</button>
+            </div>
+
+            <!-- Filtre par catégorie -->
+            <div>
+                <label>Filtrer par catégorie :
+                    <select id="filtre-categorie">
+                        <option value="">Tous</option>
+                        <option value="G">Global (G)</option>
+                        <option value="S">Site (S)</option>
+                        <option value="L">Libre (L)</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-membre" style="display:none">
+                <h3>Nouveau membre</h3>
+                <label>Matricule <input type="text" name="matricule" required placeholder="G0001 / S00001 / L00001"></label>
+                <label>Nom <input type="text" name="nom" required></label>
+                <label>Prénom <input type="text" name="prenom" required></label>
+                <label>Email <input type="email" name="email"></label>
+                <label>Téléphone <input type="text" name="telephone"></label>
+                <label>Catégorie
+                    <select name="categorie" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="G">Global (G)</option>
+                        <option value="S">Site (S)</option>
+                        <option value="L">Libre (L)</option>
+                    </select>
+                </label>
+                <label id="label-site-membre" style="display:none">Site
+                    <select name="site_id">
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-membre">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-membres" style="display:none;color:red"></p>
+
+            <!-- Liste des membres -->
+            <table id="table-membres">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Matricule</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Catégorie</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-membres">
+                    <tr><td colspan="7">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION RÉSERVATIONS -->
+        <section id="section-reservations" class="section">
+            <div class="section-header">
+                <h2>Réservations</h2>
+                <button id="btn-nouvelle-reservation">+ Nouvelle réservation</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-reservation" style="display:none">
+                <h3>Nouvelle réservation</h3>
+                <label>Terrain
+                    <select name="terrain_id" required>
+                        <option value="">-- Choisir un terrain --</option>
+                    </select>
+                </label>
+                <label>Organisateur (membre)
+                    <select name="organisateur_id" required>
+                        <option value="">-- Choisir un membre --</option>
+                    </select>
+                </label>
+                <label>Date <input type="date" name="date_match" required></label>
+                <label>Heure de début <input type="time" name="heure_debut" required></label>
+                <label>Type
+                    <select name="type" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="PRIVE">Privé</option>
+                        <option value="PUBLIC">Public</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-reservation">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-reservations" style="display:none;color:red"></p>
+
+            <!-- Recherche par membre -->
+            <div>
+                <label>Réservations d'un membre (ID) :
+                    <input type="number" id="filtre-membre-id" placeholder="ID du membre" min="1">
+                    <button id="btn-filtrer-membre">Chercher</button>
+                </label>
+            </div>
+
+            <!-- Liste des réservations -->
+            <table id="table-reservations">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Terrain</th>
+                        <th>Organisateur</th>
+                        <th>Date</th>
+                        <th>Heure</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-reservations">
+                    <tr><td colspan="7">Utilisez la recherche par membre.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION PÉNALITÉS -->
+        <section id="section-penalites" class="section">
+            <div class="section-header">
+                <h2>Pénalités</h2>
+                <button id="btn-nouvelle-penalite">+ Nouvelle pénalité</button>
+            </div>
+
+            <!-- Filtres -->
+            <div>
+                <label>Filtrer par membre (ID) :
+                    <input type="number" id="filtre-penalite-membre-id" placeholder="ID du membre" min="1">
+                    <button id="btn-filtrer-penalite-membre">Chercher</button>
+                </label>
+                <label>
+                    <input type="checkbox" id="filtre-penalites-actives">
+                    Afficher uniquement les actives
+                </label>
+                <button id="btn-toutes-penalites">Toutes les pénalités</button>
+            </div>
+
+            <!-- Formulaire création -->
+            <form id="form-penalite" style="display:none">
+                <h3>Nouvelle pénalité</h3>
+                <label>Membre
+                    <select name="membre_id" required>
+                        <option value="">-- Choisir un membre --</option>
+                    </select>
+                </label>
+                <label>Réservation (ID, optionnel) <input type="number" name="reservation_id" min="1"></label>
+                <label>Date début <input type="date" name="date_debut" required></label>
+                <label>Date fin <input type="date" name="date_fin" required></label>
+                <label>Cause
+                    <select name="cause" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="PRIVATE_INCOMPLETE">Partie privée incomplète</option>
+                        <option value="OTHER">Autre</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Créer</button>
+                    <button type="button" id="btn-annuler-penalite">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Formulaire lever une pénalité -->
+            <form id="form-lever-penalite" style="display:none">
+                <h3>Lever la pénalité <span id="lever-penalite-id"></span></h3>
+                <input type="hidden" name="penalite_id">
+                <label>Admin GLOBAL (ID) <input type="number" name="admin_id" required min="1"></label>
+                <label>Raison <input type="text" name="raison" required></label>
+                <div class="form-actions">
+                    <button type="submit">Confirmer</button>
+                    <button type="button" id="btn-annuler-lever">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-penalites" style="display:none;color:red"></p>
+
+            <!-- Liste des pénalités -->
+            <table id="table-penalites">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Membre</th>
+                        <th>Cause</th>
+                        <th>Début</th>
+                        <th>Fin</th>
+                        <th>Levée</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-penalites">
+                    <tr><td colspan="7">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION INSCRIPTIONS -->
+        <section id="section-inscriptions" class="section">
+            <div class="section-header">
+                <h2>Inscriptions</h2>
+            </div>
+
+            <!-- Recherche par réservation -->
+            <div>
+                <label>Joueurs d'une réservation (ID) :
+                    <input type="number" id="filtre-reservation-id" placeholder="ID de la réservation" min="1">
+                    <button id="btn-chercher-inscription">Chercher</button>
+                </label>
+            </div>
+
+            <!-- Formulaire ajout joueur -->
+            <form id="form-inscription" style="display:none">
+                <h3>Ajouter un joueur</h3>
+                <label>Membre
+                    <select name="membre_id" required>
+                        <option value="">-- Choisir un membre --</option>
+                    </select>
+                </label>
+                <div class="form-actions">
+                    <button type="submit">Inscrire</button>
+                    <button type="button" id="btn-annuler-inscription">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Message d'erreur -->
+            <p id="erreur-inscriptions" style="display:none;color:red"></p>
+
+            <!-- Liste des joueurs inscrits -->
+            <table id="table-inscriptions">
+                <thead>
+                    <tr>
+                        <th>Membre ID</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Matricule</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-inscriptions">
+                    <tr><td colspan="5">Entrez un ID de réservation pour voir les joueurs inscrits.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
