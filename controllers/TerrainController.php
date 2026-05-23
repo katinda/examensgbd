@@ -93,7 +93,7 @@ class TerrainController {
     // PUT /terrains/{id} → met à jour un terrain existant
     public function update(int $id): void {
         $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->terrainService->updateTerrain($id, $data);
+        $ok   = $this->terrainService->updateTerrain($id, $data ?? []);
 
         header('Content-Type: application/json');
 

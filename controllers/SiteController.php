@@ -75,7 +75,7 @@ class SiteController {
     // PUT /sites/{id} → met à jour un site existant
     public function update(int $id): void {
         $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->siteService->updateSite($id, $data);
+        $ok   = $this->siteService->updateSite($id, $data ?? []);
 
         header('Content-Type: application/json');
 

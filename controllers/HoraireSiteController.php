@@ -96,7 +96,7 @@ class HoraireSiteController {
     // PUT /api/horaires/{id}
     public function update(int $id): void {
         $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->horaireService->updateHoraire($id, $data);
+        $ok   = $this->horaireService->updateHoraire($id, $data ?? []);
 
         header('Content-Type: application/json');
 

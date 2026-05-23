@@ -72,7 +72,7 @@ class FermetureController {
     // PUT /api/fermetures/{id}
     public function update(int $id): void {
         $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->fermetureService->updateFermeture($id, $data);
+        $ok   = $this->fermetureService->updateFermeture($id, $data ?? []);
 
         header('Content-Type: application/json');
 

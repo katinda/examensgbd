@@ -104,7 +104,7 @@ class MembreController {
     // PUT /api/membres/{id}
     public function update(int $id): void {
         $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->membreService->updateMembre($id, $data);
+        $ok   = $this->membreService->updateMembre($id, $data ?? []);
 
         header('Content-Type: application/json');
 

@@ -82,7 +82,7 @@ class AdministrateurController {
     // PUT /api/administrateurs/{id}
     public function update(int $id): void {
         $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->adminService->updateAdministrateur($id, $data);
+        $ok   = $this->adminService->updateAdministrateur($id, $data ?? []);
 
         header('Content-Type: application/json');
 
