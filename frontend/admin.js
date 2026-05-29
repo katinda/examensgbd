@@ -627,14 +627,28 @@ function afficherReservations(reservations) {
             <td>${r.heure_debut}</td>
             <td>${r.type}</td>
             <td>
+                <button class="btn-joueurs" data-id="${r.id}">Joueurs</button>
                 <button class="btn-supprimer" data-id="${r.id}">Supprimer</button>
             </td>
         </tr>
     `).join('');
 
+    tbody.querySelectorAll('.btn-joueurs').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirInscriptions(btn.dataset.id));
+    });
+
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => supprimerReservation(btn.dataset.id));
     });
+}
+
+// Bascule vers la section Inscriptions et charge les joueurs de la réservation.
+function ouvrirInscriptions(reservationId) {
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    document.getElementById('section-inscriptions').style.display = 'block';
+    document.getElementById('filtre-reservation-id').value = reservationId;
+    cacherErreur('erreur-inscriptions');
+    chargerInscriptions(reservationId);
 }
 
 // Appelle DELETE /api/reservations/:id après confirmation, puis recharge la liste.
