@@ -140,8 +140,9 @@ function appliquerFiltresRole() {
     // Sites : SITE ne peut pas créer ni supprimer un site
     document.getElementById('btn-nouveau-site').style.display = estSite ? 'none' : '';
 
-    // Admins : SITE ne peut pas gérer les administrateurs
+    // Admins : SITE ne voit pas du tout la section administrateurs
     document.getElementById('btn-nouvel-admin').style.display = estSite ? 'none' : '';
+    document.querySelector('.nav-btn[data-section="administrateurs"]').style.display = estSite ? 'none' : '';
 
     // Stats : SITE → vue fixée à son site, masquer le select de filtre
     document.getElementById('filtre-stats-site').parentElement.style.display = estSite ? 'none' : '';
