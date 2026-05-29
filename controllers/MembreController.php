@@ -17,7 +17,7 @@ class MembreController {
         if ($inactifs) {
             $membres = $this->membreService->getInactifsMembres($adminId);
         } elseif ($categorie !== null) {
-            $membres = $this->membreService->getMembresByCategorie(strtoupper($categorie));
+            $membres = $this->membreService->getMembresByCategorie(strtoupper($categorie), $adminId);
         } else {
             $membres = $this->membreService->getAllMembres($adminId);
         }

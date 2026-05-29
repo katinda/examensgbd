@@ -43,10 +43,11 @@ class MembreService {
     }
 
 
-    // Retourne les membres actifs d'une catégorie (G, S ou L)
-    public function getMembresByCategorie(string $categorie): array {
-        $tous = $this->membreRepository->findByCategorie($categorie);
-        return array_values(array_filter($tous, fn($m) => $m->isEstActif()));
+    // Retourne les membres actifs d'une catégorie (G, S ou L), filtrés selon le rôle admin.
+    public function getMembresByCategorie(string $categorie, ?int $adminId = null): array {
+        $tous   = $this->membreRepository->findByCategorie($categorie);
+        $actifs = array_values(array_filter($tous, fn($m) => $m->isEstActif()));
+        return $this->filtrerParAdmin($actifs, $adminId);
     }
 
 
