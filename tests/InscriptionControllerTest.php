@@ -19,8 +19,16 @@ class InscriptionControllerTest extends TestCase {
         return json_decode(ob_get_clean(), true) ?? [];
     }
 
-    private function creerInscription(int $id): Inscription {
-        return new Inscription($id, 1, 1, false);
+    private function creerInscription(int $id): array {
+        return [
+            'id'               => $id,
+            'reservation_id'   => 1,
+            'membre_id'        => $id,
+            'nom'              => 'Dupont',
+            'prenom'           => 'Jean',
+            'matricule'        => "S0000$id",
+            'est_organisateur' => false,
+        ];
     }
 
 

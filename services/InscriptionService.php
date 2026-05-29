@@ -20,9 +20,23 @@ class InscriptionService {
     ) {}
 
 
-    // Retourne la liste des joueurs inscrits à une réservation
+    // Retourne la liste des joueurs inscrits à une réservation,
+    // enrichie avec les informations du membre (nom, prénom, matricule).
     public function getInscriptionsByReservation(int $reservationId): array {
-        return $this->inscriptionRepository->findByReservation($reservationId);
+        $inscriptions = $this->inscriptionRepository->findByReservation($reservationId);
+
+        return array_map(function($i) {
+            $membre = $this->membreRepository->findById($i->getMembreId());
+            return [
+                'id'               => $i->getInscriptionId(),
+                'reservation_id'   => $i->getReservationId(),
+                'membre_id'        => $i->getMembreId(),
+                'nom'              => $membre?->getNom(),
+                'prenom'           => $membre?->getPrenom(),
+                'matricule'        => $membre?->getMatricule(),
+                'est_organisateur' => $i->isEstOrganisateur(),
+            ];
+        }, $inscriptions);
     }
 
 

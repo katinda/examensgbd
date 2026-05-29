@@ -16,7 +16,7 @@ class InscriptionController {
         $inscriptions = $this->inscriptionService->getInscriptionsByReservation($reservationId);
 
         header('Content-Type: application/json');
-        echo json_encode(array_map(fn($i) => $this->toArray($i), $inscriptions), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        echo json_encode($inscriptions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
 
@@ -77,13 +77,4 @@ class InscriptionController {
     }
 
 
-    // Transforme un objet Inscription en tableau simple pour le JSON
-    private function toArray(Inscription $i): array {
-        return [
-            'id'               => $i->getInscriptionId(),
-            'reservation_id'   => $i->getReservationId(),
-            'membre_id'        => $i->getMembreId(),
-            'est_organisateur' => $i->isEstOrganisateur(),
-        ];
-    }
 }
