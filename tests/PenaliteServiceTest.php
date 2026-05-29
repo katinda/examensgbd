@@ -20,8 +20,12 @@ class PenaliteServiceTest extends TestCase {
         return new Membre($id, 'G0001', 'Dupont', 'Jean', null, null, 'G', null, true);
     }
 
-    private function creerAdmin(int $id, string $type): Administrateur {
-        return new Administrateur($id, 'admin', 'hash', 'A', 'B', null, $type, null, true);
+    private function creerMembreSite(int $id, int $siteId): Membre {
+        return new Membre($id, "S0000$id", 'Dupont', 'Jean', null, null, 'S', $siteId, true);
+    }
+
+    private function creerAdmin(int $id, string $type, ?int $siteId = null): Administrateur {
+        return new Administrateur($id, 'admin', 'hash', 'A', 'B', null, $type, $siteId, true);
     }
 
 
@@ -261,5 +265,64 @@ class PenaliteServiceTest extends TestCase {
 
         $service = new PenaliteService($mockRepo, $mockMembre, $mockAdmin);
         $this->assertFalse($service->deletePenalite(999));
+    }
+
+
+    // ─── Filtrage par rôle admin ─────────────────────────────────────────────
+
+    // Admin GLOBAL → voit toutes les pénalités
+    public function testGetAllPenalitesAdminGlobalVoitTout(): void {
+        $mockRepo   = $this->createStub(PenaliteRepository::class);
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockAdmin  = $this->createStub(AdministrateurRepository::class);
+        $mockRepo->method('findAll')->willReturn([
+            $this->creerPenalite(1, 1, 'OTHER'),
+            $this->creerPenalite(2, 2, 'PRIVATE_INCOMPLETE'),
+        ]);
+        $mockAdmin->method('findById')->willReturn($this->creerAdmin(1, 'GLOBAL'));
+
+        $service = new PenaliteService($mockRepo, $mockMembre, $mockAdmin);
+        $this->assertCount(2, $service->getAllPenalites(1));
+    }
+
+    // Admin SITE → uniquement les pénalités des membres S de son site
+    public function testGetAllPenalitesAdminSiteFiltreSonSite(): void {
+        $mockRepo   = $this->createStub(PenaliteRepository::class);
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockAdmin  = $this->createStub(AdministrateurRepository::class);
+        $mockRepo->method('findAll')->willReturn([
+            $this->creerPenalite(1, 1, 'OTHER'),
+            $this->creerPenalite(2, 2, 'PRIVATE_INCOMPLETE'),
+        ]);
+        $mockAdmin->method('findById')->willReturn($this->creerAdmin(1, 'SITE', 1));
+        $mockMembre->method('findById')->willReturnMap([
+            [1, $this->creerMembreSite(1, 1)], // site 1 → inclus
+            [2, $this->creerMembreSite(2, 2)], // site 2 → exclu
+        ]);
+
+        $service = new PenaliteService($mockRepo, $mockMembre, $mockAdmin);
+        $result  = $service->getAllPenalites(1);
+
+        $this->assertCount(1, $result);
+        $this->assertEquals(1, $result[0]->getMembreId());
+    }
+
+    // Admin SITE → getPenalitesActives filtre aussi
+    public function testGetPenalitesActivesAdminSiteFiltreSonSite(): void {
+        $mockRepo   = $this->createStub(PenaliteRepository::class);
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockAdmin  = $this->createStub(AdministrateurRepository::class);
+        $mockRepo->method('findActives')->willReturn([
+            $this->creerPenalite(1, 1, 'OTHER', false),
+            $this->creerPenalite(2, 2, 'OTHER', false),
+        ]);
+        $mockAdmin->method('findById')->willReturn($this->creerAdmin(1, 'SITE', 1));
+        $mockMembre->method('findById')->willReturnMap([
+            [1, $this->creerMembreSite(1, 1)],
+            [2, $this->creerMembreSite(2, 2)],
+        ]);
+
+        $service = new PenaliteService($mockRepo, $mockMembre, $mockAdmin);
+        $this->assertCount(1, $service->getPenalitesActives(1));
     }
 }

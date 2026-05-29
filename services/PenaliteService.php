@@ -15,9 +15,25 @@ class PenaliteService {
     ) {}
 
 
-    // Retourne toutes les pénalités
-    public function getAllPenalites(): array {
-        return $this->penaliteRepository->findAll();
+    // Admin SITE → uniquement les pénalités des membres S de son site.
+    private function filtrerParAdmin(array $penalites, ?int $adminId): array {
+        if ($adminId === null) return $penalites;
+
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null || $admin->getType() === 'GLOBAL') return $penalites;
+
+        return array_values(array_filter($penalites, function($p) use ($admin) {
+            $membre = $this->membreRepository->findById($p->getMembreId());
+            return $membre !== null
+                && $membre->getCategorie() === 'S'
+                && $membre->getSiteId() === $admin->getSiteId();
+        }));
+    }
+
+
+    // Retourne toutes les pénalités, filtrées selon le rôle admin si fourni.
+    public function getAllPenalites(?int $adminId = null): array {
+        return $this->filtrerParAdmin($this->penaliteRepository->findAll(), $adminId);
     }
 
 
@@ -27,15 +43,15 @@ class PenaliteService {
     }
 
 
-    // Retourne toutes les pénalités d'un membre
-    public function getPenalitesByMembreId(int $membreId): array {
-        return $this->penaliteRepository->findByMembreId($membreId);
+    // Retourne toutes les pénalités d'un membre, filtrées selon le rôle admin si fourni.
+    public function getPenalitesByMembreId(int $membreId, ?int $adminId = null): array {
+        return $this->filtrerParAdmin($this->penaliteRepository->findByMembreId($membreId), $adminId);
     }
 
 
-    // Retourne les pénalités non levées
-    public function getPenalitesActives(): array {
-        return $this->penaliteRepository->findActives();
+    // Retourne les pénalités non levées, filtrées selon le rôle admin si fourni.
+    public function getPenalitesActives(?int $adminId = null): array {
+        return $this->filtrerParAdmin($this->penaliteRepository->findActives(), $adminId);
     }
 
 

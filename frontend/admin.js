@@ -739,6 +739,7 @@ document.getElementById('form-reservation').addEventListener('submit', async e =
 // ── PÉNALITÉS ────────────────────────────────────────────────
 // Appelle GET /api/penalites (avec filtres optionnels) et affiche le résultat.
 async function chargerPenalites(params = {}) {
+    if (adminConnecte) params.admin_id = adminConnecte.id;
     try {
         const query = new URLSearchParams(params).toString();
         const url = query ? `${API}/api/penalites?${query}` : `${API}/api/penalites`;

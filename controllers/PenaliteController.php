@@ -8,16 +8,18 @@ class PenaliteController {
 
 
     // GET /api/penalites, GET /api/penalites?membre_id={id}, GET /api/penalites?actives=1
+    // ?admin_id={id} : admin SITE → uniquement les pénalités des membres S de son site
     public function getAll(): void {
         $membreId = isset($_GET['membre_id']) ? (int) $_GET['membre_id'] : null;
         $actives  = isset($_GET['actives']) && $_GET['actives'] === '1';
+        $adminId  = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         if ($actives) {
-            $penalites = $this->penaliteService->getPenalitesActives();
+            $penalites = $this->penaliteService->getPenalitesActives($adminId);
         } elseif ($membreId !== null) {
-            $penalites = $this->penaliteService->getPenalitesByMembreId($membreId);
+            $penalites = $this->penaliteService->getPenalitesByMembreId($membreId, $adminId);
         } else {
-            $penalites = $this->penaliteService->getAllPenalites();
+            $penalites = $this->penaliteService->getAllPenalites($adminId);
         }
 
         header('Content-Type: application/json');
