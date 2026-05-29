@@ -10,6 +10,23 @@ class ReservationRepository {
     public function __construct(private PDO $pdo) {}
 
 
+    // Retourne toutes les réservations, avec filtre optionnel par site.
+    public function findAll(?int $siteId = null): array {
+        if ($siteId !== null) {
+            $stmt = $this->pdo->prepare("
+                SELECT r.* FROM Reservations r
+                JOIN Terrains t ON t.Terrain_ID = r.Terrain_ID
+                WHERE t.Site_ID = :siteId
+                ORDER BY r.Date_Match DESC, r.Heure_Debut DESC
+            ");
+            $stmt->execute([':siteId' => $siteId]);
+        } else {
+            $stmt = $this->pdo->query("SELECT * FROM Reservations ORDER BY Date_Match DESC, Heure_Debut DESC");
+        }
+        return $this->hydrate($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+
     // Retourne une réservation par son ID, ou null si elle n'existe pas
     public function findById(int $id): ?Reservation {
         $stmt = $this->pdo->prepare("SELECT * FROM Reservations WHERE Reservation_ID = :id");

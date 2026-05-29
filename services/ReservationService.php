@@ -22,6 +22,20 @@ class ReservationService {
     ) {}
 
 
+    // Retourne toutes les réservations.
+    // Admin SITE → uniquement les réservations sur les terrains de son site.
+    public function getAllReservations(?int $adminId = null): array {
+        if ($adminId === null) return $this->reservationRepository->findAll();
+
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null || $admin->getType() === 'GLOBAL') {
+            return $this->reservationRepository->findAll();
+        }
+
+        return $this->reservationRepository->findAll($admin->getSiteId());
+    }
+
+
     // Retourne une réservation par son ID, ou null si elle n'existe pas
     public function getReservationById(int $id): ?Reservation {
         return $this->reservationRepository->findById($id);

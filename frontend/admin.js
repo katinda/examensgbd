@@ -36,6 +36,7 @@ function afficherDashboard() {
     chargerSites(siteId);
     chargerTerrains(siteId);
     chargerMembres();
+    chargerToutesReservations();
     chargerPenalites();
     chargerSitesDansHoraires();
     chargerHoraires(siteId);
@@ -125,6 +126,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
         document.getElementById('section-' + btn.dataset.section).style.display = 'block';
+        if (btn.dataset.section === 'reservations') chargerToutesReservations();
     });
 });
 
@@ -578,6 +580,20 @@ document.getElementById('form-membre').addEventListener('submit', async e => {
 });
 
 // ── RÉSERVATIONS ─────────────────────────────────────────────
+// Charge toutes les réservations (filtrées par site pour admin SITE).
+async function chargerToutesReservations() {
+    const adminParam = adminConnecte ? `?admin_id=${adminConnecte.id}` : '';
+    try {
+        const res = await fetch(`${API}/api/reservations${adminParam}`);
+        if (!res.ok) throw new Error();
+        const reservations = await res.json();
+        afficherReservations(reservations);
+        cacherErreur('erreur-reservations');
+    } catch {
+        afficherErreur('erreur-reservations', 'Impossible de charger les réservations.');
+    }
+}
+
 // Appelle GET /api/membres/:id/reservations et affiche les réservations du membre.
 // Admin SITE → filtre automatiquement sur les terrains de son site via ?admin_id=X.
 async function chargerReservationsMembre(membreId) {

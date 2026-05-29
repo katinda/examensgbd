@@ -150,6 +150,10 @@ if ($method === 'GET' && $uri === '/sites') {
 } elseif ($method === 'GET' && $uri === '/api/reservations/publiques') {
     $reservationController->getPubliques();
 
+// GET /api/reservations → retourne toutes les réservations
+} elseif ($method === 'GET' && $uri === '/api/reservations') {
+    $reservationController->getAll();
+
 // GET /api/reservations/{id} → retourne une réservation par son ID
 } elseif ($method === 'GET' && preg_match('#^/api/reservations/(\d+)$#', $uri, $matches)) {
     $reservationController->getById((int) $matches[1]);
