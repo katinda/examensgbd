@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Paiement.php';
 require_once __DIR__ . '/../models/Inscription.php';
 require_once __DIR__ . '/../repositories/PaiementRepository.php';
 require_once __DIR__ . '/../repositories/InscriptionRepository.php';
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 require_once __DIR__ . '/../services/PaiementService.php';
 
 // On teste la logique métier de PaiementService avec des stubs.
@@ -18,7 +19,7 @@ class PaiementServiceTest extends TestCase {
         PaiementRepository    $paiementRepo,
         InscriptionRepository $inscriptionRepo
     ): PaiementService {
-        return new PaiementService($paiementRepo, $inscriptionRepo);
+        return new PaiementService($paiementRepo, $inscriptionRepo, $this->createStub(AdministrateurRepository::class));
     }
 
     private function unePaiement(): Paiement {

@@ -10,6 +10,25 @@ class PaiementRepository {
     public function __construct(private PDO $pdo) {}
 
 
+    // Retourne tous les paiements, avec filtre optionnel par site.
+    public function findAll(?int $siteId = null): array {
+        if ($siteId !== null) {
+            $stmt = $this->pdo->prepare("
+                SELECT p.* FROM Paiements p
+                JOIN Inscriptions i ON i.Inscription_ID = p.Inscription_ID
+                JOIN Reservations r ON r.Reservation_ID = i.Reservation_ID
+                JOIN Terrains    t ON t.Terrain_ID      = r.Terrain_ID
+                WHERE t.Site_ID = :siteId
+                ORDER BY p.Date_Paiement DESC
+            ");
+            $stmt->execute([':siteId' => $siteId]);
+        } else {
+            $stmt = $this->pdo->query("SELECT * FROM Paiements ORDER BY Date_Paiement DESC");
+        }
+        return array_map(fn($row) => $this->hydrateOne($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+
     // Retourne le paiement d'une inscription, ou null si le joueur n'a pas encore payé
     public function findByInscription(int $inscriptionId): ?Paiement {
         $stmt = $this->pdo->prepare("

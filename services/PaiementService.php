@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../models/Paiement.php';
 require_once __DIR__ . '/../repositories/PaiementRepository.php';
 require_once __DIR__ . '/../repositories/InscriptionRepository.php';
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 
 // Contient la logique métier des paiements.
 // Utilise deux repositories : PaiementRepository + InscriptionRepository.
@@ -13,9 +14,24 @@ class PaiementService {
     private const METHODES_VALIDES = ['CARTE', 'VIREMENT', 'ESPECES', 'MOBILE'];
 
     public function __construct(
-        private PaiementRepository   $paiementRepository,
-        private InscriptionRepository $inscriptionRepository
+        private PaiementRepository    $paiementRepository,
+        private InscriptionRepository $inscriptionRepository,
+        private AdministrateurRepository $adminRepository
     ) {}
+
+
+    // Retourne tous les paiements.
+    // Admin SITE → uniquement les paiements liés aux terrains de son site.
+    public function getAllPaiements(?int $adminId = null): array {
+        if ($adminId === null) return $this->paiementRepository->findAll();
+
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null || $admin->getType() === 'GLOBAL') {
+            return $this->paiementRepository->findAll();
+        }
+
+        return $this->paiementRepository->findAll($admin->getSiteId());
+    }
 
 
     // Retourne le paiement d'une inscription, ou une string d'erreur

@@ -83,7 +83,7 @@ $penaliteRepo            = new PenaliteRepository($pdo);
 $penaliteService         = new PenaliteService($penaliteRepo, $membreRepo, $adminRepo);
 $penaliteController      = new PenaliteController($penaliteService);
 $paiementRepo            = new PaiementRepository($pdo);
-$paiementService         = new PaiementService($paiementRepo, $inscriptionRepo);
+$paiementService         = new PaiementService($paiementRepo, $inscriptionRepo, $adminRepo);
 $paiementController      = new PaiementController($paiementService);
 $statsService            = new StatsService($pdo);
 $statsController         = new StatsController($statsService);
@@ -281,6 +281,10 @@ if ($method === 'GET' && $uri === '/sites') {
 // DELETE /api/penalites/{id}
 } elseif ($method === 'DELETE' && preg_match('#^/api/penalites/(\d+)$#', $uri, $matches)) {
     $penaliteController->delete((int) $matches[1]);
+
+// GET /api/paiements → retourne tous les paiements (filtré par site pour admin SITE)
+} elseif ($method === 'GET' && $uri === '/api/paiements') {
+    $paiementController->getAll();
 
 // GET /api/inscriptions/{id}/paiement → consulte le paiement d'une inscription
 } elseif ($method === 'GET' && preg_match('#^/api/inscriptions/(\d+)/paiement$#', $uri, $matches)) {

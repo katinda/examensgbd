@@ -43,6 +43,7 @@ function afficherDashboard() {
     chargerSitesDansFermetures();
     siteId ? chargerFermeturesAdminSite(siteId) : chargerFermetures({});
     chargerAdministrateurs();
+    chargerTousPaiements();
     chargerSitesDansStats();
     chargerStats(siteId ?? '');
     appliquerFiltresRole();
@@ -128,6 +129,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         document.getElementById('section-' + btn.dataset.section).style.display = 'block';
         if (btn.dataset.section === 'reservations') chargerToutesReservations();
         if (btn.dataset.section === 'horaires') chargerHoraires(siteIdAdmin() ?? document.getElementById('filtre-horaire-site').value);
+        if (btn.dataset.section === 'paiements') chargerTousPaiements();
     });
 });
 
@@ -1515,6 +1517,33 @@ document.getElementById('form-admin').addEventListener('submit', async e => {
 // ── Init ─────────────────────────────────────────────────────
 // Chargement initial des données au démarrage de la page.
 // ── PAIEMENTS ─────────────────────────────────────────────────
+// Charge tous les paiements (filtrés par site pour admin SITE).
+async function chargerTousPaiements() {
+    const adminParam = adminConnecte ? `?admin_id=${adminConnecte.id}` : '';
+    try {
+        const res = await fetch(`${API}/api/paiements${adminParam}`);
+        if (!res.ok) throw new Error();
+        const paiements = await res.json();
+        const tbody = document.getElementById('tbody-tous-paiements');
+        if (!paiements.length) {
+            tbody.innerHTML = '<tr><td colspan="6">Aucun paiement.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = paiements.map(p => `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.inscription_id}</td>
+                <td>${p.montant} €</td>
+                <td>${p.methode ?? '—'}</td>
+                <td>${p.date_paiement}</td>
+                <td>${p.est_annule ? 'Oui' : 'Non'}</td>
+            </tr>
+        `).join('');
+    } catch {
+        afficherErreur('erreur-paiements', 'Impossible de charger les paiements.');
+    }
+}
+
 // Appelle GET /api/inscriptions/:id/paiement et affiche le résultat.
 async function chargerPaiement(inscriptionId) {
     const resultat = document.getElementById('resultat-paiement');

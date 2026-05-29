@@ -10,6 +10,17 @@ class PaiementController {
     public function __construct(private PaiementService $paiementService) {}
 
 
+    // GET /api/paiements → retourne tous les paiements
+    // ?admin_id={id} : admin SITE → filtre sur les terrains de son site
+    public function getAll(): void {
+        $adminId   = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
+        $paiements = $this->paiementService->getAllPaiements($adminId);
+
+        header('Content-Type: application/json');
+        echo json_encode(array_map(fn($p) => $this->toArray($p), $paiements), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+
     // GET /api/inscriptions/{id}/paiement → consulte le paiement d'une inscription
     public function getByInscription(int $inscriptionId): void {
         $result = $this->paiementService->getPaiementByInscription($inscriptionId);

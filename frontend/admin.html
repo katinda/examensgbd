@@ -595,9 +595,28 @@
                 <h2>Paiements</h2>
             </div>
 
-            <!-- Recherche par inscription -->
+            <!-- Tous les paiements -->
+            <table id="table-tous-paiements">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Inscription</th>
+                        <th>Montant</th>
+                        <th>Méthode</th>
+                        <th>Date</th>
+                        <th>Annulé</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-tous-paiements">
+                    <tr><td colspan="6">Chargement…</td></tr>
+                </tbody>
+            </table>
+
+            <hr>
+
+            <!-- Recherche par inscription (détail + paiement) -->
             <div>
-                <label>Paiement d'une inscription (ID) :
+                <label>Détail / paiement d'une inscription (ID) :
                     <input type="number" id="filtre-inscription-id" placeholder="ID de l'inscription" min="1">
                     <button id="btn-chercher-paiement">Chercher</button>
                 </label>
@@ -625,7 +644,7 @@
             <!-- Message d'erreur -->
             <p id="erreur-paiements" style="display:none;color:red"></p>
 
-            <!-- Résultat paiement -->
+            <!-- Résultat paiement détail -->
             <div id="resultat-paiement" style="display:none">
                 <table>
                     <thead>
