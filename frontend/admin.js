@@ -992,8 +992,9 @@ async function retirerJoueur(reservationId, membreId) {
 
 // Remplit le select membre du formulaire d'inscription.
 async function chargerMembresDansInscription() {
+    const adminParam = adminConnecte ? `?admin_id=${adminConnecte.id}` : '';
     try {
-        const res = await fetch(`${API}/api/membres`);
+        const res = await fetch(`${API}/api/membres${adminParam}`);
         const membres = await res.json();
         const select = document.querySelector('#form-inscription select[name="membre_id"]');
         select.innerHTML = '<option value="">-- Choisir un membre --</option>';
