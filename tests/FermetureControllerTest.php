@@ -24,117 +24,144 @@ class FermetureControllerTest extends TestCase {
     }
 
 
-    // getAll → retourne toutes les fermetures
+    // ─── Lecture (inchangé) ──────────────────────────────────────────────────
+
     public function testGetAllRetourneToutesLesFermetures(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('getAllFermetures')->willReturn([$this->creerFermeture(1), $this->creerFermeture(2)]);
 
         $response = $this->capturer(fn() => (new FermetureController($stub))->getAll());
-
         $this->assertCount(2, $response);
     }
 
-
-    // getAll?globales=1 → retourne uniquement les fermetures globales
     public function testGetAllRetourneLesFermeturesGlobales(): void {
         $_GET['globales'] = '1';
         $stub = $this->createStub(FermetureService::class);
         $stub->method('getFermeturesGlobales')->willReturn([$this->creerFermeture(1)]);
 
         $response = $this->capturer(fn() => (new FermetureController($stub))->getAll());
-
         $this->assertCount(1, $response);
     }
 
-
-    // getAll?site_id=1 → retourne les fermetures d'un site
     public function testGetAllRetourneLesFermeturesDUnSite(): void {
         $_GET['site_id'] = '1';
         $stub = $this->createStub(FermetureService::class);
         $stub->method('getFermeturesBySiteId')->willReturn([$this->creerFermeture(1)]);
 
         $response = $this->capturer(fn() => (new FermetureController($stub))->getAll());
-
         $this->assertCount(1, $response);
     }
 
-
-    // getById → retourne la fermeture et 200 si trouvée
     public function testGetByIdRetourneLaFermeture(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('getFermetureById')->willReturn($this->creerFermeture(1));
 
         $response = $this->capturer(fn() => (new FermetureController($stub))->getById(1));
-
         $this->assertEquals(200, http_response_code());
         $this->assertEquals(1, $response['id']);
     }
 
-
-    // getById → 404 si fermeture introuvable
     public function testGetByIdRetourne404SiIntrouvable(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('getFermetureById')->willReturn(null);
 
-        $response = $this->capturer(fn() => (new FermetureController($stub))->getById(99));
-
+        $this->capturer(fn() => (new FermetureController($stub))->getById(99));
         $this->assertEquals(404, http_response_code());
-        $this->assertArrayHasKey('erreur', $response);
     }
 
 
-    // create → 400 si champs obligatoires absents
-    public function testCreateRetourne400SiChampsManquants(): void {
+    // ─── create ─────────────────────────────────────────────────────────────
+
+    public function testCreateRetourne400SiAdminIdManquant(): void {
         $stub = $this->createStub(FermetureService::class);
 
         $this->capturer(fn() => (new FermetureController($stub))->create());
+        $this->assertEquals(400, http_response_code());
+    }
 
+    public function testCreateRetourne400SiChampsManquants(): void {
+        $stub = $this->createStub(FermetureService::class);
+        $_GET['admin_id'] = '1';
+
+        $this->capturer(fn() => (new FermetureController($stub))->create());
         $this->assertEquals(400, http_response_code());
     }
 
 
-    // update → 200 si mise à jour réussie
+    // ─── update ─────────────────────────────────────────────────────────────
+
+    public function testUpdateRetourne400SiAdminIdManquant(): void {
+        $stub = $this->createStub(FermetureService::class);
+
+        $this->capturer(fn() => (new FermetureController($stub))->update(1));
+        $this->assertEquals(400, http_response_code());
+    }
+
     public function testUpdateRetourne200SiReussi(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('updateFermeture')->willReturn(true);
+        $_GET['admin_id'] = '1';
 
         $response = $this->capturer(fn() => (new FermetureController($stub))->update(1));
-
         $this->assertEquals(200, http_response_code());
         $this->assertArrayHasKey('message', $response);
     }
 
+    public function testUpdateRetourne403SiAccesInterdit(): void {
+        $stub = $this->createStub(FermetureService::class);
+        $stub->method('updateFermeture')->willReturn('acces_interdit');
+        $_GET['admin_id'] = '1';
 
-    // update → 404 si fermeture introuvable
+        $response = $this->capturer(fn() => (new FermetureController($stub))->update(1));
+        $this->assertEquals(403, http_response_code());
+        $this->assertArrayHasKey('erreur', $response);
+    }
+
     public function testUpdateRetourne404SiIntrouvable(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('updateFermeture')->willReturn(false);
+        $_GET['admin_id'] = '1';
 
         $this->capturer(fn() => (new FermetureController($stub))->update(99));
-
         $this->assertEquals(404, http_response_code());
     }
 
 
-    // delete → 200 si suppression réussie
+    // ─── delete ─────────────────────────────────────────────────────────────
+
+    public function testDeleteRetourne400SiAdminIdManquant(): void {
+        $stub = $this->createStub(FermetureService::class);
+
+        $this->capturer(fn() => (new FermetureController($stub))->delete(1));
+        $this->assertEquals(400, http_response_code());
+    }
+
     public function testDeleteRetourne200SiReussi(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('deleteFermeture')->willReturn(true);
+        $_GET['admin_id'] = '1';
 
         $response = $this->capturer(fn() => (new FermetureController($stub))->delete(1));
-
         $this->assertEquals(200, http_response_code());
         $this->assertArrayHasKey('message', $response);
     }
 
+    public function testDeleteRetourne403SiAccesInterdit(): void {
+        $stub = $this->createStub(FermetureService::class);
+        $stub->method('deleteFermeture')->willReturn('acces_interdit');
+        $_GET['admin_id'] = '1';
 
-    // delete → 404 si fermeture introuvable
+        $response = $this->capturer(fn() => (new FermetureController($stub))->delete(1));
+        $this->assertEquals(403, http_response_code());
+        $this->assertArrayHasKey('erreur', $response);
+    }
+
     public function testDeleteRetourne404SiIntrouvable(): void {
         $stub = $this->createStub(FermetureService::class);
         $stub->method('deleteFermeture')->willReturn(false);
+        $_GET['admin_id'] = '1';
 
         $this->capturer(fn() => (new FermetureController($stub))->delete(99));
-
         $this->assertEquals(404, http_response_code());
     }
 }

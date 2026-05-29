@@ -2,19 +2,14 @@
 
 require_once __DIR__ . '/../repositories/TerrainRepository.php';
 require_once __DIR__ . '/../repositories/SiteRepository.php';
-
-// Le service contient la logique métier liée aux terrains.
-// Il a besoin de DEUX repositories :
-// - TerrainRepository pour gérer les terrains
-// - SiteRepository pour vérifier qu'un site existe avant d'y ajouter un terrain
-// C'est ce qu'on appelle composer les dépendances : on reçoit les deux dans le constructeur.
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 
 class TerrainService {
 
-    // Les deux repositories sont reçus en paramètre (injection de dépendance).
     public function __construct(
-        private TerrainRepository $terrainRepository,
-        private SiteRepository    $siteRepository
+        private TerrainRepository        $terrainRepository,
+        private SiteRepository           $siteRepository,
+        private AdministrateurRepository $adminRepository
     ) {}
 
 
@@ -37,15 +32,12 @@ class TerrainService {
     }
 
 
-    // Retourne tous les terrains actifs d'un site précis.
-    // Vérifie d'abord que le site existe, sinon retourne null.
-    // Utilisé pour la route imbriquée GET /sites/{siteId}/terrains
+    // Retourne tous les terrains actifs d'un site précis, ou null si le site n'existe pas
     public function getTerrainsBySite(int $siteId): ?array {
-        // On vérifie que le site existe avant de chercher ses terrains
         $site = $this->siteRepository->findById($siteId);
 
         if ($site === null) {
-            return null; // site introuvable → le controller renverra 404
+            return null;
         }
 
         $terrains = $this->terrainRepository->findBySiteId($siteId);
@@ -54,18 +46,30 @@ class TerrainService {
 
 
     // Crée un nouveau terrain.
-    // Retourne l'ID créé, ou une erreur si le site n'existe pas ou si le numéro est déjà pris.
-    // $data['site_id'] et $data['num_terrain'] sont obligatoires.
-    public function createTerrain(array $data): int|string {
-        // Règle 1 : vérifier que le site existe avant d'insérer
-        $site = $this->siteRepository->findById((int) $data['site_id']);
-        if ($site === null) {
-            return 'site_introuvable'; // le controller traduira ça en 404
+    // GLOBAL peut créer sur n'importe quel site.
+    // SITE ne peut créer que sur son propre site.
+    //
+    // Erreurs possibles :
+    //   'admin_introuvable' → adminId inconnu → 404
+    //   'acces_interdit'    → admin SITE essaie un autre site → 403
+    //   'site_introuvable'  → site_id inconnu → 404
+    //   'doublon'           → numéro déjà pris sur ce site → 409
+    public function createTerrain(array $data, int $adminId): int|string {
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null) return 'admin_introuvable';
+
+        $siteId = (int) $data['site_id'];
+
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $siteId) {
+            return 'acces_interdit';
         }
+
+        $site = $this->siteRepository->findById($siteId);
+        if ($site === null) return 'site_introuvable';
 
         $terrain = new Terrain(
             null,
-            (int) $data['site_id'],
+            $siteId,
             (int) $data['num_terrain'],
             $data['libelle'] ?? null,
             true
@@ -74,23 +78,26 @@ class TerrainService {
         try {
             return $this->terrainRepository->insert($terrain);
         } catch (PDOException $e) {
-            // Règle 2 : si MySQL refuse à cause de la contrainte UNIQUE (Site_ID, Num_Terrain)
-            // on retourne un message clair au lieu de laisser crasher l'application
-            if ($e->getCode() === '23000') {
-                return 'doublon'; // le controller traduira ça en 409 Conflict
-            }
-            throw $e; // autre erreur inattendue : on la remonte
+            if ($e->getCode() === '23000') return 'doublon';
+            throw $e;
         }
     }
 
 
     // Met à jour un terrain existant.
-    // Retourne false si le terrain n'existe pas.
-    public function updateTerrain(int $id, array $data): bool {
-        $terrain = $this->terrainRepository->findById($id);
+    // GLOBAL peut modifier n'importe quel terrain.
+    // SITE ne peut modifier que les terrains de son site.
+    //
+    // Retourne true, false (terrain inexistant), ou une string d'erreur.
+    public function updateTerrain(int $id, array $data, int $adminId): bool|string {
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null) return 'admin_introuvable';
 
-        if ($terrain === null) {
-            return false;
+        $terrain = $this->terrainRepository->findById($id);
+        if ($terrain === null) return false;
+
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $terrain->getSiteId()) {
+            return 'acces_interdit';
         }
 
         if (isset($data['num_terrain'])) $terrain->setNumTerrain((int) $data['num_terrain']);
@@ -102,13 +109,20 @@ class TerrainService {
     }
 
 
-    // Supprime un terrain par son ID.
-    // Retourne false si le terrain n'existe pas.
-    public function deleteTerrain(int $id): bool {
-        $terrain = $this->terrainRepository->findById($id);
+    // Supprime un terrain.
+    // GLOBAL peut supprimer n'importe quel terrain.
+    // SITE ne peut supprimer que les terrains de son site.
+    //
+    // Retourne true, false (terrain inexistant), ou une string d'erreur.
+    public function deleteTerrain(int $id, int $adminId): bool|string {
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null) return 'admin_introuvable';
 
-        if ($terrain === null) {
-            return false;
+        $terrain = $this->terrainRepository->findById($id);
+        if ($terrain === null) return false;
+
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $terrain->getSiteId()) {
+            return 'acces_interdit';
         }
 
         $this->terrainRepository->delete($id);

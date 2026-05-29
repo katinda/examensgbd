@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../services/HoraireSiteService.php';
 
+// admin_id est attendu en query param (?admin_id=1) pour toutes les opérations d'écriture.
+
 class HoraireSiteController {
 
     public function __construct(private HoraireSiteService $horaireService) {}
@@ -57,22 +59,36 @@ class HoraireSiteController {
     }
 
 
-    // POST /api/horaires
+    // POST /api/horaires?admin_id={id}
     public function create(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
+
+        header('Content-Type: application/json');
+
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
 
         if (empty($data['site_id']) || empty($data['annee']) || empty($data['heure_debut']) || empty($data['heure_fin'])) {
-            header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode(['erreur' => 'Les champs "site_id", "annee", "heure_debut" et "heure_fin" sont obligatoires']);
             return;
         }
 
-        $result = $this->horaireService->createHoraire($data);
-
-        header('Content-Type: application/json');
+        $result = $this->horaireService->createHoraire($data, $adminId);
 
         match ($result) {
+            'admin_introuvable' => (function() use ($adminId) {
+                http_response_code(404);
+                echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            })(),
+            'acces_interdit' => (function() {
+                http_response_code(403);
+                echo json_encode(['erreur' => 'Vous ne pouvez créer des horaires que pour votre propre site']);
+            })(),
             'annee_invalide' => (function() {
                 http_response_code(400);
                 echo json_encode(['erreur' => "L'année doit être comprise entre 2000 et 2100"]);
@@ -93,14 +109,34 @@ class HoraireSiteController {
     }
 
 
-    // PUT /api/horaires/{id}
+    // PUT /api/horaires/{id}?admin_id={id}
     public function update(int $id): void {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->horaireService->updateHoraire($id, $data ?? []);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->horaireService->updateHoraire($id, $data ?? [], $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Vous ne pouvez modifier que les horaires de votre propre site']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Horaire $id introuvable"]);
             return;
@@ -110,13 +146,33 @@ class HoraireSiteController {
     }
 
 
-    // DELETE /api/horaires/{id}
+    // DELETE /api/horaires/{id}?admin_id={id}
     public function delete(int $id): void {
-        $ok = $this->horaireService->deleteHoraire($id);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->horaireService->deleteHoraire($id, $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Vous ne pouvez supprimer que les horaires de votre propre site']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Horaire $id introuvable"]);
             return;

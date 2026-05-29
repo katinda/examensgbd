@@ -3,7 +3,9 @@
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../models/Fermeture.php';
+require_once __DIR__ . '/../models/Administrateur.php';
 require_once __DIR__ . '/../repositories/FermetureRepository.php';
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 require_once __DIR__ . '/../services/FermetureService.php';
 
 class FermetureServiceTest extends TestCase {
@@ -12,8 +14,25 @@ class FermetureServiceTest extends TestCase {
         return new Fermeture($id, $siteId, $debut, $fin, $raison);
     }
 
+    private function creerAdmin(string $type, ?int $siteId = null): Administrateur {
+        return new Administrateur(1, 'admin', 'hash', null, null, null, $type, $siteId, true);
+    }
 
-    // Vérifie que getAllFermetures() retourne bien toutes les fermetures
+    private function creerAdminRepo(string $type, ?int $siteId = null): AdministrateurRepository {
+        $mock = $this->createStub(AdministrateurRepository::class);
+        $mock->method('findById')->willReturn($this->creerAdmin($type, $siteId));
+        return $mock;
+    }
+
+    private function creerAdminRepoNull(): AdministrateurRepository {
+        $mock = $this->createStub(AdministrateurRepository::class);
+        $mock->method('findById')->willReturn(null);
+        return $mock;
+    }
+
+
+    // ─── Lecture (inchangé) ──────────────────────────────────────────────────
+
     public function testGetAllFermeturesRetourneToutesLesFermetures(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
         $mockRepo->method('findAll')->willReturn([
@@ -21,149 +40,181 @@ class FermetureServiceTest extends TestCase {
             $this->creerFermeture(2, null, '2026-12-25', '2026-12-25', 'Noël'),
         ]);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->getAllFermetures();
-
-        $this->assertCount(2, $result, "getAllFermetures() doit retourner 2 fermetures");
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertCount(2, $service->getAllFermetures());
     }
 
-
-    // Vérifie que getFermetureById() retourne la bonne fermeture
     public function testGetFermetureByIdRetourneLaBonneFermeture(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
-        $mockRepo->method('findById')->willReturn(
-            $this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux')
-        );
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux'));
 
-        $service = new FermetureService($mockRepo);
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
         $result  = $service->getFermetureById(1);
 
         $this->assertNotNull($result);
         $this->assertEquals('2026-08-01', $result->getDateDebut());
     }
 
-
-    // Vérifie que getFermetureById() retourne null si la fermeture n'existe pas
     public function testGetFermetureByIdRetourneNullSiInexistant(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
         $mockRepo->method('findById')->willReturn(null);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->getFermetureById(999);
-
-        $this->assertNull($result, "Une fermeture inexistante doit retourner null");
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertNull($service->getFermetureById(999));
     }
 
-
-    // Vérifie que getFermeturesBySiteId() retourne les fermetures d'un site
     public function testGetFermeturesBySiteIdRetourneLesfermetures(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
-        $mockRepo->method('findBySiteId')->willReturn([
-            $this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux'),
-        ]);
+        $mockRepo->method('findBySiteId')->willReturn([$this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux')]);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->getFermeturesBySiteId(1);
-
-        $this->assertCount(1, $result);
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertCount(1, $service->getFermeturesBySiteId(1));
     }
 
-
-    // Vérifie que getFermeturesGlobales() retourne les fermetures globales
     public function testGetFermeturesGlobalesRetourneLesfermeturesGlobales(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
-        $mockRepo->method('findGlobales')->willReturn([
-            $this->creerFermeture(2, null, '2026-12-25', '2026-12-25', 'Noël'),
-        ]);
+        $mockRepo->method('findGlobales')->willReturn([$this->creerFermeture(2, null, '2026-12-25', '2026-12-25', 'Noël')]);
 
-        $service = new FermetureService($mockRepo);
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
         $result  = $service->getFermeturesGlobales();
 
         $this->assertCount(1, $result);
-        $this->assertNull($result[0]->getSiteId(), "Une fermeture globale a Site_ID null");
+        $this->assertNull($result[0]->getSiteId());
     }
 
 
-    // Vérifie que createFermeture() retourne un ID valide si tout est correct
-    public function testCreateFermetureRetourneUnId(): void {
+    // ─── createFermeture ─────────────────────────────────────────────────────
+
+    public function testCreateFermetureGlobaleAccepteAdminGlobal(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
         $mockRepo->method('insert')->willReturn(3);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->createFermeture([
-            'site_id'    => 1,
-            'date_debut' => '2026-08-01',
-            'date_fin'   => '2026-08-07',
-            'raison'     => 'Travaux',
-        ]);
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $result  = $service->createFermeture(['date_debut' => '2026-12-25', 'date_fin' => '2026-12-25'], 1);
 
-        $this->assertEquals(3, $result, "createFermeture() doit retourner l'ID créé");
+        $this->assertEquals(3, $result);
     }
 
+    public function testCreateFermetureGlobaleRefuseAdminSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
 
-    // Vérifie que createFermeture() retourne 'dates_invalides' si date_debut > date_fin
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 1));
+        $result  = $service->createFermeture(['date_debut' => '2026-12-25', 'date_fin' => '2026-12-25'], 1);
+
+        $this->assertEquals('acces_interdit', $result);
+    }
+
+    public function testCreateFermetureSiteAccepteAdminSiteSonSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('insert')->willReturn(3);
+
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 1));
+        $result  = $service->createFermeture(['site_id' => 1, 'date_debut' => '2026-08-01', 'date_fin' => '2026-08-07'], 1);
+
+        $this->assertEquals(3, $result);
+    }
+
+    public function testCreateFermetureSiteRefuseAdminSiteAutreSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 2));
+        $result  = $service->createFermeture(['site_id' => 1, 'date_debut' => '2026-08-01', 'date_fin' => '2026-08-07'], 1);
+
+        $this->assertEquals('acces_interdit', $result);
+    }
+
     public function testCreateFermetureRetourneDatesInvalides(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->createFermeture([
-            'date_debut' => '2026-08-10',
-            'date_fin'   => '2026-08-01',
-            'raison'     => 'Erreur',
-        ]);
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $result  = $service->createFermeture(['date_debut' => '2026-08-10', 'date_fin' => '2026-08-01'], 1);
 
         $this->assertEquals('dates_invalides', $result);
     }
 
 
-    // Vérifie que updateFermeture() retourne true quand la fermeture existe
-    public function testUpdateFermetureRetourneTrueSiExiste(): void {
+    // ─── updateFermeture ─────────────────────────────────────────────────────
+
+    public function testUpdateFermetureGlobaleAccepteAdminGlobal(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
-        $mockRepo->method('findById')->willReturn(
-            $this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux')
-        );
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, null, '2026-12-25', '2026-12-25', 'Noël'));
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->updateFermeture(1, ['date_fin' => '2026-08-14']);
-
-        $this->assertTrue($result, "updateFermeture() doit retourner true si la fermeture existe");
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertTrue($service->updateFermeture(1, ['raison' => 'Fête'], 1));
     }
 
+    public function testUpdateFermetureGlobaleRefuseAdminSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, null, '2026-12-25', '2026-12-25', 'Noël'));
 
-    // Vérifie que updateFermeture() retourne false quand la fermeture n'existe pas
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 1));
+        $this->assertEquals('acces_interdit', $service->updateFermeture(1, ['raison' => 'X'], 1));
+    }
+
+    public function testUpdateFermetureSiteAccepteAdminSiteSonSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux'));
+
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 1));
+        $this->assertTrue($service->updateFermeture(1, ['date_fin' => '2026-08-14'], 1));
+    }
+
+    public function testUpdateFermetureSiteRefuseAdminSiteAutreSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux'));
+
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 2));
+        $this->assertEquals('acces_interdit', $service->updateFermeture(1, ['date_fin' => '2026-08-14'], 1));
+    }
+
     public function testUpdateFermetureRetourneFalseSiInexistant(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
         $mockRepo->method('findById')->willReturn(null);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->updateFermeture(999, ['date_fin' => '2026-08-14']);
-
-        $this->assertFalse($result, "updateFermeture() doit retourner false si la fermeture n'existe pas");
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertFalse($service->updateFermeture(999, ['date_fin' => '2026-08-14'], 1));
     }
 
 
-    // Vérifie que deleteFermeture() retourne true quand la fermeture existe
-    public function testDeleteFermetureRetourneTrueSiExiste(): void {
+    // ─── deleteFermeture ─────────────────────────────────────────────────────
+
+    public function testDeleteFermetureGlobaleAccepteAdminGlobal(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
-        $mockRepo->method('findById')->willReturn(
-            $this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux')
-        );
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, null, '2026-12-25', '2026-12-25', 'Noël'));
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->deleteFermeture(1);
-
-        $this->assertTrue($result, "deleteFermeture() doit retourner true si la fermeture existe");
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertTrue($service->deleteFermeture(1, 1));
     }
 
+    public function testDeleteFermetureGlobaleRefuseAdminSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, null, '2026-12-25', '2026-12-25', 'Noël'));
 
-    // Vérifie que deleteFermeture() retourne false quand la fermeture n'existe pas
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 1));
+        $this->assertEquals('acces_interdit', $service->deleteFermeture(1, 1));
+    }
+
+    public function testDeleteFermetureSiteAccepteAdminSiteSonSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux'));
+
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 1));
+        $this->assertTrue($service->deleteFermeture(1, 1));
+    }
+
+    public function testDeleteFermetureSiteRefuseAdminSiteAutreSite(): void {
+        $mockRepo = $this->createStub(FermetureRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerFermeture(1, 1, '2026-08-01', '2026-08-07', 'Travaux'));
+
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('SITE', 2));
+        $this->assertEquals('acces_interdit', $service->deleteFermeture(1, 1));
+    }
+
     public function testDeleteFermetureRetourneFalseSiInexistant(): void {
         $mockRepo = $this->createStub(FermetureRepository::class);
         $mockRepo->method('findById')->willReturn(null);
 
-        $service = new FermetureService($mockRepo);
-        $result  = $service->deleteFermeture(999);
-
-        $this->assertFalse($result, "deleteFermeture() doit retourner false si la fermeture n'existe pas");
+        $service = new FermetureService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $this->assertFalse($service->deleteFermeture(999, 1));
     }
 }

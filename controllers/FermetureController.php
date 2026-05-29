@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../services/FermetureService.php';
 
+// admin_id est attendu en query param (?admin_id=1) pour toutes les opérations d'écriture.
+
 class FermetureController {
 
     public function __construct(private FermetureService $fermetureService) {}
@@ -41,22 +43,36 @@ class FermetureController {
     }
 
 
-    // POST /api/fermetures
+    // POST /api/fermetures?admin_id={id}
     public function create(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
+
+        header('Content-Type: application/json');
+
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
 
         if (empty($data['date_debut']) || empty($data['date_fin'])) {
-            header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode(['erreur' => 'Les champs "date_debut" et "date_fin" sont obligatoires']);
             return;
         }
 
-        $result = $this->fermetureService->createFermeture($data);
-
-        header('Content-Type: application/json');
+        $result = $this->fermetureService->createFermeture($data, $adminId);
 
         match ($result) {
+            'admin_introuvable' => (function() use ($adminId) {
+                http_response_code(404);
+                echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            })(),
+            'acces_interdit' => (function() {
+                http_response_code(403);
+                echo json_encode(['erreur' => 'Droits insuffisants pour créer cette fermeture']);
+            })(),
             'dates_invalides' => (function() {
                 http_response_code(400);
                 echo json_encode(['erreur' => 'La date de début doit être inférieure ou égale à la date de fin']);
@@ -69,14 +85,34 @@ class FermetureController {
     }
 
 
-    // PUT /api/fermetures/{id}
+    // PUT /api/fermetures/{id}?admin_id={id}
     public function update(int $id): void {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->fermetureService->updateFermeture($id, $data ?? []);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->fermetureService->updateFermeture($id, $data ?? [], $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Droits insuffisants pour modifier cette fermeture']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Fermeture $id introuvable"]);
             return;
@@ -86,13 +122,33 @@ class FermetureController {
     }
 
 
-    // DELETE /api/fermetures/{id}
+    // DELETE /api/fermetures/{id}?admin_id={id}
     public function delete(int $id): void {
-        $ok = $this->fermetureService->deleteFermeture($id);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->fermetureService->deleteFermeture($id, $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Droits insuffisants pour supprimer cette fermeture']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Fermeture $id introuvable"]);
             return;

@@ -1,16 +1,14 @@
 <?php
 
 require_once __DIR__ . '/../repositories/SiteRepository.php';
-
-// Le service contient la logique métier liée aux sites.
-// Il fait le lien entre le controller (qui reçoit la requête)
-// et le repository (qui parle à la base de données).
-// Le service ne fait jamais de SQL directement.
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 
 class SiteService {
 
-    // Le repository est reçu en paramètre (injection de dépendance).
-    public function __construct(private SiteRepository $siteRepository) {}
+    public function __construct(
+        private SiteRepository $siteRepository,
+        private AdministrateurRepository $adminRepository
+    ) {}
 
 
     // Retourne tous les sites actifs.
@@ -32,8 +30,18 @@ class SiteService {
     }
 
 
-    // Crée un nouveau site à partir des données reçues et retourne son ID.
-    public function createSite(array $data): int {
+    // Crée un nouveau site. Seul un admin GLOBAL peut créer un site.
+    // Retourne l'ID créé, ou une string décrivant l'erreur.
+    //
+    // Erreurs possibles :
+    //   'admin_introuvable' → adminId inconnu → 404
+    //   'acces_interdit'    → admin de type SITE → 403
+    public function createSite(array $data, int $adminId): int|string {
+        $admin = $this->adminRepository->findById($adminId);
+
+        if ($admin === null) return 'admin_introuvable';
+        if ($admin->getType() !== 'GLOBAL') return 'acces_interdit';
+
         $site = new Site(
             null,
             $data['nom'],
@@ -47,13 +55,20 @@ class SiteService {
     }
 
 
-    // Met à jour un site existant. Retourne false si le site n'existe pas.
-    public function updateSite(int $id, array $data): bool {
+    // Met à jour un site existant.
+    // Un admin GLOBAL peut modifier n'importe quel site.
+    // Un admin SITE ne peut modifier que son propre site.
+    //
+    // Retourne true, false (site inexistant), ou une string d'erreur.
+    public function updateSite(int $id, array $data, int $adminId): bool|string {
+        $admin = $this->adminRepository->findById($adminId);
+
+        if ($admin === null) return 'admin_introuvable';
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $id) return 'acces_interdit';
+
         $site = $this->siteRepository->findById($id);
 
-        if ($site === null) {
-            return false;
-        }
+        if ($site === null) return false;
 
         if (isset($data['nom']))         $site->setNom($data['nom']);
         if (isset($data['adresse']))     $site->setAdresse($data['adresse']);
@@ -66,13 +81,18 @@ class SiteService {
     }
 
 
-    // Supprime un site par son ID. Retourne false si le site n'existe pas.
-    public function deleteSite(int $id): bool {
+    // Supprime un site. Seul un admin GLOBAL peut supprimer un site.
+    //
+    // Retourne true, false (site inexistant), ou une string d'erreur.
+    public function deleteSite(int $id, int $adminId): bool|string {
+        $admin = $this->adminRepository->findById($adminId);
+
+        if ($admin === null) return 'admin_introuvable';
+        if ($admin->getType() !== 'GLOBAL') return 'acces_interdit';
+
         $site = $this->siteRepository->findById($id);
 
-        if ($site === null) {
-            return false;
-        }
+        if ($site === null) return false;
 
         $this->siteRepository->delete($id);
         return true;

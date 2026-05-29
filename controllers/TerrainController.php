@@ -4,11 +4,10 @@ require_once __DIR__ . '/../services/TerrainService.php';
 
 // Le controller reçoit les requêtes HTTP et renvoie du JSON.
 // Il ne fait jamais de SQL et ne contient pas de logique métier.
-// Son seul rôle : appeler le bon service et formater la réponse.
+// admin_id est attendu en query param (?admin_id=1) pour toutes les opérations d'écriture.
 
 class TerrainController {
 
-    // Le service est reçu en paramètre (injection de dépendance).
     public function __construct(private TerrainService $terrainService) {}
 
 
@@ -57,22 +56,39 @@ class TerrainController {
     }
 
 
-    // POST /terrains → crée un nouveau terrain
+    // POST /terrains?admin_id={id} → crée un nouveau terrain
     public function create(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
+
+        header('Content-Type: application/json');
+
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
 
         if (empty($data['site_id']) || empty($data['num_terrain'])) {
-            header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode(['erreur' => 'Les champs "site_id" et "num_terrain" sont obligatoires']);
             return;
         }
 
-        $result = $this->terrainService->createTerrain($data);
+        $result = $this->terrainService->createTerrain($data, $adminId);
 
-        header('Content-Type: application/json');
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
 
-        // Le service retourne une string si erreur, un int si succès
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Vous ne pouvez créer des terrains que sur votre propre site']);
+            return;
+        }
+
         if ($result === 'site_introuvable') {
             http_response_code(404);
             echo json_encode(['erreur' => "Site {$data['site_id']} introuvable"]);
@@ -80,7 +96,7 @@ class TerrainController {
         }
 
         if ($result === 'doublon') {
-            http_response_code(409); // 409 Conflict
+            http_response_code(409);
             echo json_encode(['erreur' => "Le terrain {$data['num_terrain']} existe déjà pour ce site"]);
             return;
         }
@@ -90,14 +106,34 @@ class TerrainController {
     }
 
 
-    // PUT /terrains/{id} → met à jour un terrain existant
+    // PUT /terrains/{id}?admin_id={id} → met à jour un terrain existant
     public function update(int $id): void {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->terrainService->updateTerrain($id, $data ?? []);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->terrainService->updateTerrain($id, $data ?? [], $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Vous ne pouvez modifier que les terrains de votre propre site']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Terrain $id introuvable"]);
             return;
@@ -107,13 +143,33 @@ class TerrainController {
     }
 
 
-    // DELETE /terrains/{id} → supprime un terrain
+    // DELETE /terrains/{id}?admin_id={id} → supprime un terrain
     public function delete(int $id): void {
-        $ok = $this->terrainService->deleteTerrain($id);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->terrainService->deleteTerrain($id, $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Vous ne pouvez supprimer que les terrains de votre propre site']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Terrain $id introuvable"]);
             return;
@@ -123,8 +179,6 @@ class TerrainController {
     }
 
 
-    // Transforme un objet Terrain en tableau simple pour le JSON
-    // Méthode privée réutilisée par getAll(), getById() et getBySite()
     private function toArray(Terrain $t): array {
         return [
             'id'          => $t->getTerrainId(),

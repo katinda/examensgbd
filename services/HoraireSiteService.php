@@ -1,11 +1,13 @@
 <?php
 
 require_once __DIR__ . '/../repositories/HoraireSiteRepository.php';
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 
 class HoraireSiteService {
 
     public function __construct(
-        private HoraireSiteRepository $horaireRepository
+        private HoraireSiteRepository    $horaireRepository,
+        private AdministrateurRepository $adminRepository
     ) {}
 
     public function getAllHoraires(): array {
@@ -24,23 +26,32 @@ class HoraireSiteService {
         return $this->horaireRepository->findBySiteAndAnnee($siteId, $annee);
     }
 
+    // Crée un horaire.
+    // GLOBAL peut créer sur n'importe quel site.
+    // SITE ne peut créer que sur son propre site.
+    //
     // Erreurs possibles :
-    //   'annee_invalide'   → année hors de la plage 2000-2100 → 400
-    //   'heures_invalides' → Heure_Debut >= Heure_Fin → 400
-    //   'doublon'          → un horaire existe déjà pour ce site et cette année → 409
-    public function createHoraire(array $data): int|string {
+    //   'admin_introuvable' → adminId inconnu → 404
+    //   'acces_interdit'    → admin SITE essaie un autre site → 403
+    //   'annee_invalide'    → année hors 2000-2100 → 400
+    //   'heures_invalides'  → heure_debut >= heure_fin → 400
+    //   'doublon'           → horaire déjà existant pour ce site/année → 409
+    public function createHoraire(array $data, int $adminId): int|string {
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null) return 'admin_introuvable';
+
+        $siteId = (int) ($data['site_id'] ?? 0);
+
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $siteId) {
+            return 'acces_interdit';
+        }
+
         $annee      = (int) ($data['annee'] ?? 0);
         $heureDebut = $data['heure_debut'] ?? '';
-        $heureFin   = $data['heure_fin'] ?? '';
-        $siteId     = (int) ($data['site_id'] ?? 0);
+        $heureFin   = $data['heure_fin']   ?? '';
 
-        if ($annee < 2000 || $annee > 2100) {
-            return 'annee_invalide';
-        }
-
-        if ($heureDebut >= $heureFin) {
-            return 'heures_invalides';
-        }
+        if ($annee < 2000 || $annee > 2100) return 'annee_invalide';
+        if ($heureDebut >= $heureFin)        return 'heures_invalides';
 
         if ($this->horaireRepository->findBySiteAndAnnee($siteId, $annee) !== null) {
             return 'doublon';
@@ -50,12 +61,20 @@ class HoraireSiteService {
         return $this->horaireRepository->insert($horaire);
     }
 
-    // Retourne false si l'horaire n'existe pas.
-    public function updateHoraire(int $id, array $data): bool {
-        $horaire = $this->horaireRepository->findById($id);
+    // Met à jour un horaire.
+    // GLOBAL peut modifier n'importe quel horaire.
+    // SITE ne peut modifier que les horaires de son propre site.
+    //
+    // Retourne true, false (inexistant), ou une string d'erreur.
+    public function updateHoraire(int $id, array $data, int $adminId): bool|string {
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null) return 'admin_introuvable';
 
-        if ($horaire === null) {
-            return false;
+        $horaire = $this->horaireRepository->findById($id);
+        if ($horaire === null) return false;
+
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $horaire->getSiteId()) {
+            return 'acces_interdit';
         }
 
         if (isset($data['annee']))       $horaire->setAnnee((int) $data['annee']);
@@ -66,12 +85,20 @@ class HoraireSiteService {
         return true;
     }
 
-    // Retourne false si l'horaire n'existe pas.
-    public function deleteHoraire(int $id): bool {
-        $horaire = $this->horaireRepository->findById($id);
+    // Supprime un horaire.
+    // GLOBAL peut supprimer n'importe quel horaire.
+    // SITE ne peut supprimer que les horaires de son propre site.
+    //
+    // Retourne true, false (inexistant), ou une string d'erreur.
+    public function deleteHoraire(int $id, int $adminId): bool|string {
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null) return 'admin_introuvable';
 
-        if ($horaire === null) {
-            return false;
+        $horaire = $this->horaireRepository->findById($id);
+        if ($horaire === null) return false;
+
+        if ($admin->getType() === 'SITE' && $admin->getSiteId() !== $horaire->getSiteId()) {
+            return 'acces_interdit';
         }
 
         $this->horaireRepository->delete($id);

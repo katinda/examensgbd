@@ -4,6 +4,7 @@ require_once __DIR__ . '/../services/SiteService.php';
 
 // Le controller reçoit les requêtes HTTP et renvoie du JSON.
 // Il ne fait jamais de SQL et ne contient pas de logique métier.
+// admin_id est attendu en query param (?admin_id=1) pour toutes les opérations d'écriture.
 
 class SiteController {
 
@@ -53,33 +54,72 @@ class SiteController {
     }
 
 
-    // POST /sites → crée un nouveau site
+    // POST /sites?admin_id={id} → crée un nouveau site (GLOBAL uniquement)
     public function create(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
+
+        header('Content-Type: application/json');
+
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
 
         if (empty($data['nom'])) {
-            header('Content-Type: application/json');
             http_response_code(400);
             echo json_encode(['erreur' => 'Le champ "nom" est obligatoire']);
             return;
         }
 
-        $id = $this->siteService->createSite($data);
+        $result = $this->siteService->createSite($data, $adminId);
 
-        header('Content-Type: application/json');
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Seul un administrateur GLOBAL peut créer un site']);
+            return;
+        }
+
         http_response_code(201);
-        echo json_encode(['message' => 'Site créé avec succès', 'id' => $id], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['message' => 'Site créé avec succès', 'id' => $result], JSON_UNESCAPED_UNICODE);
     }
 
 
-    // PUT /sites/{id} → met à jour un site existant
+    // PUT /sites/{id}?admin_id={id} → met à jour un site existant
     public function update(int $id): void {
-        $data = json_decode(file_get_contents('php://input'), true);
-        $ok   = $this->siteService->updateSite($id, $data ?? []);
+        $data    = json_decode(file_get_contents('php://input'), true);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->siteService->updateSite($id, $data ?? [], $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Vous ne pouvez modifier que votre propre site']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Site $id introuvable"]);
             return;
@@ -89,13 +129,33 @@ class SiteController {
     }
 
 
-    // DELETE /sites/{id} → supprime un site
+    // DELETE /sites/{id}?admin_id={id} → supprime un site (GLOBAL uniquement)
     public function delete(int $id): void {
-        $ok = $this->siteService->deleteSite($id);
+        $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         header('Content-Type: application/json');
 
-        if (!$ok) {
+        if ($adminId === null) {
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le paramètre "admin_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->siteService->deleteSite($id, $adminId);
+
+        if ($result === 'admin_introuvable') {
+            http_response_code(404);
+            echo json_encode(['erreur' => "Administrateur $adminId introuvable"]);
+            return;
+        }
+
+        if ($result === 'acces_interdit') {
+            http_response_code(403);
+            echo json_encode(['erreur' => 'Seul un administrateur GLOBAL peut supprimer un site']);
+            return;
+        }
+
+        if ($result === false) {
             http_response_code(404);
             echo json_encode(['erreur' => "Site $id introuvable"]);
             return;
