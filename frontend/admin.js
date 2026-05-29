@@ -870,8 +870,9 @@ document.getElementById('btn-toutes-penalites').addEventListener('click', () => 
 
 // Remplit le select membre du formulaire de création de pénalité.
 async function chargerMembresDansPenalite() {
+    const adminParam = adminConnecte ? `?admin_id=${adminConnecte.id}` : '';
     try {
-        const res = await fetch(`${API}/api/membres`);
+        const res = await fetch(`${API}/api/membres${adminParam}`);
         const membres = await res.json();
         const select = document.querySelector('#form-penalite select[name="membre_id"]');
         select.innerHTML = '<option value="">-- Choisir un membre --</option>';
