@@ -380,14 +380,15 @@ document.getElementById('form-terrain').addEventListener('submit', async e => {
 // Appelle GET /api/membres avec les filtres actifs (catégorie et/ou inactifs).
 async function chargerMembres(categorie = '') {
     const inactifs = document.getElementById('filtre-inactifs').checked;
+    const adminParam = adminConnecte ? `&admin_id=${adminConnecte.id}` : '';
     try {
         let url;
         if (inactifs) {
-            url = `${API}/api/membres?inactifs=1`;
+            url = `${API}/api/membres?inactifs=1${adminParam}`;
         } else if (categorie) {
-            url = `${API}/api/membres?categorie=${categorie}`;
+            url = `${API}/api/membres?categorie=${categorie}${adminParam}`;
         } else {
-            url = `${API}/api/membres`;
+            url = `${API}/api/membres?${adminParam.slice(1)}`;
         }
         const res = await fetch(url);
         const membres = await res.json();

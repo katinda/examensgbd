@@ -2,31 +2,44 @@
 
 require_once __DIR__ . '/../repositories/MembreRepository.php';
 require_once __DIR__ . '/../repositories/SiteRepository.php';
-
-// Le service contient toute la logique métier des membres.
-// Il utilise deux repositories :
-// - MembreRepository pour gérer les membres
-// - SiteRepository pour vérifier qu'un site existe (obligatoire pour catégorie S)
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 
 class MembreService {
 
     public function __construct(
-        private MembreRepository $membreRepository,
-        private SiteRepository   $siteRepository
+        private MembreRepository         $membreRepository,
+        private SiteRepository           $siteRepository,
+        private AdministrateurRepository $adminRepository
     ) {}
 
 
-    // Retourne tous les membres actifs
-    public function getAllMembres(): array {
-        $tous = $this->membreRepository->findAll();
-        return array_values(array_filter($tous, fn($m) => $m->isEstActif()));
+    // Admin SITE → uniquement les membres S de son site.
+    // Admin GLOBAL ou pas d'adminId → tous les membres.
+    private function filtrerParAdmin(array $membres, ?int $adminId): array {
+        if ($adminId === null) return $membres;
+
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null || $admin->getType() === 'GLOBAL') return $membres;
+
+        return array_values(array_filter($membres,
+            fn($m) => $m->getCategorie() === 'S' && $m->getSiteId() === $admin->getSiteId()
+        ));
     }
 
 
-    // Retourne tous les membres inactifs (désactivés par soft delete)
-    public function getInactifsMembres(): array {
-        $tous = $this->membreRepository->findAll();
-        return array_values(array_filter($tous, fn($m) => !$m->isEstActif()));
+    // Retourne les membres actifs, filtrés selon le rôle de l'admin si fourni.
+    public function getAllMembres(?int $adminId = null): array {
+        $tous   = $this->membreRepository->findAll();
+        $actifs = array_values(array_filter($tous, fn($m) => $m->isEstActif()));
+        return $this->filtrerParAdmin($actifs, $adminId);
+    }
+
+
+    // Retourne les membres inactifs, filtrés selon le rôle de l'admin si fourni.
+    public function getInactifsMembres(?int $adminId = null): array {
+        $tous      = $this->membreRepository->findAll();
+        $inactifs  = array_values(array_filter($tous, fn($m) => !$m->isEstActif()));
+        return $this->filtrerParAdmin($inactifs, $adminId);
     }
 
 

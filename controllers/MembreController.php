@@ -8,16 +8,18 @@ class MembreController {
 
 
     // GET /api/membres, GET /api/membres?categorie=G, GET /api/membres?inactifs=1
+    // Paramètre optionnel ?admin_id={id} : filtre les résultats selon le rôle de l'admin.
     public function getAll(): void {
         $categorie = $_GET['categorie'] ?? null;
         $inactifs  = isset($_GET['inactifs']) && $_GET['inactifs'] === '1';
+        $adminId   = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
         if ($inactifs) {
-            $membres = $this->membreService->getInactifsMembres();
+            $membres = $this->membreService->getInactifsMembres($adminId);
         } elseif ($categorie !== null) {
             $membres = $this->membreService->getMembresByCategorie(strtoupper($categorie));
         } else {
-            $membres = $this->membreService->getAllMembres();
+            $membres = $this->membreService->getAllMembres($adminId);
         }
 
         header('Content-Type: application/json');
