@@ -579,9 +579,11 @@ document.getElementById('form-membre').addEventListener('submit', async e => {
 
 // ── RÉSERVATIONS ─────────────────────────────────────────────
 // Appelle GET /api/membres/:id/reservations et affiche les réservations du membre.
+// Admin SITE → filtre automatiquement sur les terrains de son site via ?admin_id=X.
 async function chargerReservationsMembre(membreId) {
+    const adminParam = adminConnecte ? `?admin_id=${adminConnecte.id}` : '';
     try {
-        const res = await fetch(`${API}/api/membres/${membreId}/reservations`);
+        const res = await fetch(`${API}/api/membres/${membreId}/reservations${adminParam}`);
         if (!res.ok) throw new Error();
         const reservations = await res.json();
         afficherReservations(reservations);
@@ -642,11 +644,15 @@ document.getElementById('btn-filtrer-membre').addEventListener('click', () => {
 });
 
 // Remplit les selects terrain et membre du formulaire de réservation.
+// Admin SITE → terrains limités à son site, membres filtrés via admin_id.
 async function chargerSelectsReservation() {
+    const siteId     = siteIdAdmin();
+    const adminParam = adminConnecte ? `?admin_id=${adminConnecte.id}` : '';
     try {
+        const urlTerrains = siteId ? `${API}/sites/${siteId}/terrains` : `${API}/terrains`;
         const [resTerrains, resMembres] = await Promise.all([
-            fetch(`${API}/terrains`),
-            fetch(`${API}/api/membres`),
+            fetch(urlTerrains),
+            fetch(`${API}/api/membres${adminParam}`),
         ]);
         const terrains = await resTerrains.json();
         const membres  = await resMembres.json();

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../repositories/ReservationRepository.php';
 require_once __DIR__ . '/../repositories/TerrainRepository.php';
 require_once __DIR__ . '/../repositories/MembreRepository.php';
 require_once __DIR__ . '/../repositories/InscriptionRepository.php';
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 
 // Le service contient la logique métier des réservations.
 // Version minimale : vérifie terrain + organisateur, calcule Heure_Fin, insère.
@@ -12,11 +13,12 @@ require_once __DIR__ . '/../repositories/InscriptionRepository.php';
 class ReservationService {
 
     public function __construct(
-        private ReservationRepository $reservationRepository,
-        private TerrainRepository     $terrainRepository,
-        private MembreRepository      $membreRepository,
-        private InscriptionRepository $inscriptionRepository,
-        private PDO                   $pdo
+        private ReservationRepository    $reservationRepository,
+        private TerrainRepository        $terrainRepository,
+        private MembreRepository         $membreRepository,
+        private InscriptionRepository    $inscriptionRepository,
+        private AdministrateurRepository $adminRepository,
+        private PDO                      $pdo
     ) {}
 
 
@@ -26,9 +28,20 @@ class ReservationService {
     }
 
 
-    // Retourne toutes les réservations d'un membre (en tant qu'organisateur)
-    public function getReservationsByMembre(int $membreId): array {
-        return $this->reservationRepository->findByOrganisateur($membreId);
+    // Retourne les réservations d'un membre.
+    // Admin SITE → uniquement les réservations sur les terrains de son site.
+    public function getReservationsByMembre(int $membreId, ?int $adminId = null): array {
+        $reservations = $this->reservationRepository->findByOrganisateur($membreId);
+
+        if ($adminId === null) return $reservations;
+
+        $admin = $this->adminRepository->findById($adminId);
+        if ($admin === null || $admin->getType() === 'GLOBAL') return $reservations;
+
+        return array_values(array_filter($reservations, function($r) use ($admin) {
+            $terrain = $this->terrainRepository->findById($r->getTerrainId());
+            return $terrain !== null && $terrain->getSiteId() === $admin->getSiteId();
+        }));
     }
 
 

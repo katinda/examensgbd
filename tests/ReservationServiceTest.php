@@ -9,6 +9,8 @@ require_once __DIR__ . '/../repositories/ReservationRepository.php';
 require_once __DIR__ . '/../repositories/TerrainRepository.php';
 require_once __DIR__ . '/../repositories/MembreRepository.php';
 require_once __DIR__ . '/../repositories/InscriptionRepository.php';
+require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
+require_once __DIR__ . '/../models/Administrateur.php';
 require_once __DIR__ . '/../services/ReservationService.php';
 
 // On teste la logique métier du ReservationService.
@@ -16,12 +18,12 @@ require_once __DIR__ . '/../services/ReservationService.php';
 
 class ReservationServiceTest extends TestCase {
 
-    private function creerReservation(int $id): Reservation {
-        return new Reservation($id, 1, 1, '2026-05-10', '10:00:00', '11:30:00', 'PRIVE');
+    private function creerReservation(int $id, int $terrainId = 1): Reservation {
+        return new Reservation($id, $terrainId, 1, '2026-05-10', '10:00:00', '11:30:00', 'PRIVE');
     }
 
-    private function creerTerrain(int $id, bool $actif): Terrain {
-        return new Terrain($id, 1, $id, "Terrain $id", $actif);
+    private function creerTerrain(int $id, bool $actif, int $siteId = 1): Terrain {
+        return new Terrain($id, $siteId, $id, "Terrain $id", $actif);
     }
 
     private function creerMembre(int $id, bool $actif = true): Membre {
@@ -51,7 +53,7 @@ class ReservationServiceTest extends TestCase {
         $mockRepo = $this->createStub(ReservationRepository::class);
         $mockRepo->method('findById')->willReturn($this->creerReservation(1));
 
-        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $result  = $service->getReservationById(1);
 
         $this->assertNotNull($result);
@@ -67,7 +69,7 @@ class ReservationServiceTest extends TestCase {
             $this->creerReservation(2),
         ]);
 
-        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertCount(2, $service->getReservationsByMembre(1));
     }
 
@@ -79,7 +81,7 @@ class ReservationServiceTest extends TestCase {
             $this->creerReservation(1),
         ]);
 
-        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertCount(1, $service->getReservationsByTerrainAndDate(1, '2026-05-10'));
     }
 
@@ -89,7 +91,7 @@ class ReservationServiceTest extends TestCase {
         $mockTerrain = $this->createStub(TerrainRepository::class);
         $mockTerrain->method('findById')->willReturn(null);
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertEquals('terrain_introuvable', $service->createReservation($this->creerData()));
     }
 
@@ -99,7 +101,7 @@ class ReservationServiceTest extends TestCase {
         $mockTerrain = $this->createStub(TerrainRepository::class);
         $mockTerrain->method('findById')->willReturn($this->creerTerrain(1, false));
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertEquals('terrain_inactif', $service->createReservation($this->creerData()));
     }
 
@@ -111,7 +113,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn(null);
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertEquals('organisateur_introuvable', $service->createReservation($this->creerData()));
     }
 
@@ -125,7 +127,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertEquals('creneau_pris', $service->createReservation($this->creerData()));
     }
 
@@ -140,7 +142,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $this->assertEquals(5, $service->createReservation($this->creerData()));
     }
 
@@ -160,10 +162,53 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
         $service->createReservation($this->creerData(['heure_debut' => '09:00:00']));
 
         $this->assertNotNull($reservationInseree);
         $this->assertEquals('10:30:00', $reservationInseree->getHeureFin());
+    }
+
+
+    // ─── Filtrage par rôle admin ─────────────────────────────────────────────
+
+    private function creerAdminRepo(string $type, ?int $siteId = null): AdministrateurRepository {
+        $admin = new Administrateur(1, 'admin', 'hash', null, null, null, $type, $siteId, true);
+        $mock  = $this->createStub(AdministrateurRepository::class);
+        $mock->method('findById')->willReturn($admin);
+        return $mock;
+    }
+
+    // Admin GLOBAL → voit toutes les réservations du membre
+    public function testGetReservationsByMembreAdminGlobalVoitTout(): void {
+        $mockRepo = $this->createStub(ReservationRepository::class);
+        $mockRepo->method('findByOrganisateur')->willReturn([
+            $this->creerReservation(1, 1),
+            $this->creerReservation(2, 2),
+        ]);
+        $mockTerrain = $this->createStub(TerrainRepository::class);
+
+        $service = new ReservationService($mockRepo, $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerAdminRepo('GLOBAL'), $this->creerPdo());
+        $this->assertCount(2, $service->getReservationsByMembre(1, 1));
+    }
+
+    // Admin SITE → uniquement les réservations sur les terrains de son site
+    public function testGetReservationsByMembreAdminSiteFiltreSonSite(): void {
+        $mockRepo = $this->createStub(ReservationRepository::class);
+        $mockRepo->method('findByOrganisateur')->willReturn([
+            $this->creerReservation(1, 1),
+            $this->creerReservation(2, 2),
+        ]);
+        $mockTerrain = $this->createStub(TerrainRepository::class);
+        $mockTerrain->method('findById')->willReturnMap([
+            [1, $this->creerTerrain(1, true, 1)], // terrain du site 1
+            [2, $this->creerTerrain(2, true, 2)], // terrain du site 2
+        ]);
+
+        $service = new ReservationService($mockRepo, $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerAdminRepo('SITE', 1), $this->creerPdo());
+        $result  = $service->getReservationsByMembre(1, 1);
+
+        $this->assertCount(1, $result);
+        $this->assertEquals(1, $result[0]->getTerrainId());
     }
 }

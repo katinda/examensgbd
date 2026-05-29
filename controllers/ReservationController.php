@@ -27,9 +27,11 @@ class ReservationController {
     }
 
 
-    // GET /api/membres/{id}/reservations → retourne toutes les réservations d'un membre
+    // GET /api/membres/{id}/reservations → retourne les réservations d'un membre
+    // ?admin_id={id} : admin SITE → uniquement les réservations sur ses terrains
     public function getByMembre(int $membreId): void {
-        $reservations = $this->reservationService->getReservationsByMembre($membreId);
+        $adminId      = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
+        $reservations = $this->reservationService->getReservationsByMembre($membreId, $adminId);
 
         header('Content-Type: application/json');
         echo json_encode(array_map(fn($r) => $this->toArray($r), $reservations), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
