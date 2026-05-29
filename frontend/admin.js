@@ -403,7 +403,7 @@ function afficherMembres(membres, inactifs = false) {
     const tbody = document.getElementById('tbody-membres');
 
     if (!membres.length) {
-        tbody.innerHTML = '<tr><td colspan="7">Aucun membre.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Aucun membre.</td></tr>';
         return;
     }
 
@@ -414,6 +414,7 @@ function afficherMembres(membres, inactifs = false) {
             <td>${m.nom}</td>
             <td>${m.prenom}</td>
             <td>${m.categorie}</td>
+            <td>${m.site_id ?? '—'}</td>
             <td>${m.email ?? '—'}</td>
             <td>
                 ${inactifs
