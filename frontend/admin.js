@@ -127,6 +127,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
         document.getElementById('section-' + btn.dataset.section).style.display = 'block';
         if (btn.dataset.section === 'reservations') chargerToutesReservations();
+        if (btn.dataset.section === 'horaires') chargerHoraires(siteIdAdmin() ?? document.getElementById('filtre-horaire-site').value);
     });
 });
 
@@ -1121,29 +1122,29 @@ async function chargerSitesDansHoraires() {
         const sites = await res.json();
         const siteId = siteIdAdmin();
 
-        const filtre = document.getElementById('filtre-horaire-site');
-        filtre.innerHTML = '<option value="">Tous les sites</option>';
-
+        const filtre     = document.getElementById('filtre-horaire-site');
         const selectForm = document.querySelector('#form-horaire select[name="site_id"]');
+
+        filtre.innerHTML     = '<option value="">Tous les sites</option>';
         selectForm.innerHTML = '<option value="">-- Choisir un site --</option>';
 
-        const sitesForm = siteId ? sites.filter(s => s.id === siteId) : sites;
+        const sitesAfficher = siteId ? sites.filter(s => s.id === siteId) : sites;
 
-        sites.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
-            filtre.appendChild(opt);
+        sitesAfficher.forEach(s => {
+            const label = `${s.nom} (${s.ville ?? s.id})`;
+            [filtre, selectForm].forEach(sel => {
+                const opt = document.createElement('option');
+                opt.value       = s.id;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
         });
 
-        sitesForm.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
-            selectForm.appendChild(opt);
-        });
-
-        if (siteId) selectForm.value = siteId;
+        if (siteId) {
+            filtre.value     = siteId;
+            filtre.disabled  = true;
+            selectForm.value = siteId;
+        }
     } catch {
         afficherErreur('erreur-horaires', 'Impossible de charger les sites.');
     }
