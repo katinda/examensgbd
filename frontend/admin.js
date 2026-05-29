@@ -475,33 +475,70 @@ document.getElementById('filtre-inactifs').addEventListener('change', () => {
     chargerMembres(document.getElementById('filtre-categorie').value);
 });
 
-// Affiche le formulaire et charge les sites dans le select si catégorie S sélectionnée.
-document.getElementById('btn-nouveau-membre').addEventListener('click', () => {
+// Affiche le formulaire.
+// Admin SITE → force catégorie S, pré-sélectionne et verrouille son site.
+document.getElementById('btn-nouveau-membre').addEventListener('click', async () => {
     document.getElementById('form-membre').style.display = 'block';
+
+    if (adminConnecte?.type === 'SITE') {
+        const selectCategorie = document.querySelector('#form-membre select[name="categorie"]');
+        selectCategorie.value    = 'S';
+        selectCategorie.disabled = true;
+
+        const labelSite = document.getElementById('label-site-membre');
+        labelSite.style.display = 'block';
+
+        const res    = await fetch(`${API}/sites`);
+        const sites  = await res.json();
+        const site   = sites.find(s => s.id === adminConnecte.site_id);
+        const select = labelSite.querySelector('select');
+        select.innerHTML = '';
+        if (site) {
+            const opt = document.createElement('option');
+            opt.value       = site.id;
+            opt.textContent = `${site.nom} (${site.ville ?? site.id})`;
+            select.appendChild(opt);
+            select.value    = site.id;
+        }
+        select.disabled = true;
+    }
 });
 
 // Cache et réinitialise le formulaire quand on clique sur "Annuler".
 document.getElementById('btn-annuler-membre').addEventListener('click', () => {
-    document.getElementById('form-membre').style.display = 'none';
-    document.getElementById('form-membre').reset();
+    const form = document.getElementById('form-membre');
+    form.style.display = 'none';
+    form.reset();
     document.getElementById('label-site-membre').style.display = 'none';
+    document.querySelector('#form-membre select[name="categorie"]').disabled = false;
+    document.querySelector('#label-site-membre select').disabled             = false;
 });
 
 // Affiche ou cache le select site selon la catégorie choisie (obligatoire pour S).
+// Admin SITE : select site limité à son site et désactivé.
 document.querySelector('#form-membre select[name="categorie"]').addEventListener('change', async e => {
     const labelSite = document.getElementById('label-site-membre');
     if (e.target.value === 'S') {
         labelSite.style.display = 'block';
-        const res = await fetch(`${API}/sites`);
-        const sites = await res.json();
+        const res    = await fetch(`${API}/sites`);
+        let sites    = await res.json();
         const select = labelSite.querySelector('select');
-        select.innerHTML = '<option value="">-- Choisir un site --</option>';
+
+        if (adminConnecte?.type === 'SITE') {
+            sites = sites.filter(s => s.id === adminConnecte.site_id);
+            select.disabled = true;
+        } else {
+            select.disabled = false;
+        }
+
+        select.innerHTML = adminConnecte?.type === 'SITE' ? '' : '<option value="">-- Choisir un site --</option>';
         sites.forEach(s => {
             const opt = document.createElement('option');
-            opt.value = s.id;
+            opt.value       = s.id;
             opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
             select.appendChild(opt);
         });
+        if (adminConnecte?.type === 'SITE') select.value = adminConnecte.site_id;
     } else {
         labelSite.style.display = 'none';
     }
