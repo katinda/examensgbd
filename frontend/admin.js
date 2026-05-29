@@ -44,6 +44,7 @@ function afficherDashboard() {
     chargerAdministrateurs();
     chargerSitesDansStats();
     chargerStats(siteId ?? '');
+    appliquerFiltresRole();
 }
 
 // Connexion par nom uniquement — cherche l'admin par son nom et accède au dashboard.
@@ -127,6 +128,34 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     });
 });
 
+// ── Filtres de rôle ──────────────────────────────────────────
+// Applique les restrictions visuelles selon le type d'admin connecté (GLOBAL ou SITE).
+// Appelé une fois après chaque connexion.
+function appliquerFiltresRole() {
+    const estSite = adminConnecte?.type === 'SITE';
+
+    // Sites : SITE ne peut pas créer ni supprimer un site
+    document.getElementById('btn-nouveau-site').style.display = estSite ? 'none' : '';
+
+    // Admins : SITE ne peut pas gérer les administrateurs
+    document.getElementById('btn-nouvel-admin').style.display = estSite ? 'none' : '';
+
+    // Stats : SITE → vue fixée à son site, masquer le select de filtre
+    document.getElementById('filtre-stats-site').parentElement.style.display = estSite ? 'none' : '';
+
+    // Fermetures : SITE → masquer la checkbox "Globales uniquement" (non concerné)
+    document.getElementById('filtre-fermetures-globales').parentElement.style.display = estSite ? 'none' : '';
+
+    // Membres : SITE → dans le formulaire de création, masquer les catégories G et L
+    if (estSite) {
+        document.querySelector('#form-membre select[name="categorie"]')
+            .querySelectorAll('option[value="G"], option[value="L"]')
+            .forEach(opt => opt.style.display = 'none');
+        document.querySelectorAll('#filtre-categorie option[value="G"], #filtre-categorie option[value="L"]')
+            .forEach(opt => opt.style.display = 'none');
+    }
+}
+
 // ── Utilitaires ──────────────────────────────────────────────
 // Affiche un message d'erreur dans l'élément dont l'id est fourni.
 function afficherErreur(id, message) {
@@ -163,6 +192,7 @@ function afficherSites(sites) {
         return;
     }
 
+    const peutSupprimer = adminConnecte?.type === 'GLOBAL';
     tbody.innerHTML = sites.map(s => `
         <tr>
             <td>${s.id}</td>
@@ -170,7 +200,7 @@ function afficherSites(sites) {
             <td>${s.ville ?? '—'}</td>
             <td>${s.code_postal ?? '—'}</td>
             <td>
-                <button class="btn-supprimer" data-id="${s.id}">Supprimer</button>
+                ${peutSupprimer ? `<button class="btn-supprimer" data-id="${s.id}">Supprimer</button>` : '—'}
             </td>
         </tr>
     `).join('');
@@ -184,7 +214,7 @@ function afficherSites(sites) {
 async function supprimerSite(id) {
     if (!confirm('Supprimer ce site ?')) return;
     try {
-        const res = await fetch(`${API}/sites/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API}/sites/${id}?admin_id=${adminConnecte.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-sites');
         chargerSites(siteIdAdmin());
@@ -216,7 +246,7 @@ document.getElementById('form-site').addEventListener('submit', async e => {
     };
 
     try {
-        const res = await fetch(`${API}/sites`, {
+        const res = await fetch(`${API}/sites?admin_id=${adminConnecte.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -276,7 +306,7 @@ function afficherTerrains(terrains) {
 async function supprimerTerrain(id) {
     if (!confirm('Supprimer ce terrain ?')) return;
     try {
-        const res = await fetch(`${API}/terrains/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API}/terrains/${id}?admin_id=${adminConnecte.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-terrains');
         chargerTerrains(siteIdAdmin());
@@ -286,10 +316,14 @@ async function supprimerTerrain(id) {
 }
 
 // Remplit le <select> des sites dans le formulaire terrain.
+// Admin SITE → uniquement son site, pré-sélectionné.
 async function chargerSitesDansSelect() {
     try {
         const res = await fetch(`${API}/sites`);
-        const sites = await res.json();
+        let sites = await res.json();
+        const siteId = siteIdAdmin();
+        if (siteId) sites = sites.filter(s => s.id === siteId);
+
         const select = document.querySelector('#form-terrain select[name="site_id"]');
         select.innerHTML = '<option value="">-- Choisir un site --</option>';
         sites.forEach(s => {
@@ -298,6 +332,7 @@ async function chargerSitesDansSelect() {
             opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
             select.appendChild(opt);
         });
+        if (siteId) select.value = siteId;
     } catch {
         afficherErreur('erreur-terrains', 'Impossible de charger les sites.');
     }
@@ -326,7 +361,7 @@ document.getElementById('form-terrain').addEventListener('submit', async e => {
     };
 
     try {
-        const res = await fetch(`${API}/terrains`, {
+        const res = await fetch(`${API}/terrains?admin_id=${adminConnecte.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -664,6 +699,7 @@ function afficherPenalites(penalites) {
         return;
     }
 
+    const peutLever = adminConnecte?.type === 'GLOBAL';
     tbody.innerHTML = penalites.map(p => `
         <tr>
             <td>${p.id}</td>
@@ -673,7 +709,7 @@ function afficherPenalites(penalites) {
             <td>${p.date_fin}</td>
             <td>${p.date_levee ? 'Oui' : 'Non'}</td>
             <td>
-                ${!p.date_levee ? `<button class="btn-lever" data-id="${p.id}">Lever</button>` : ''}
+                ${!p.date_levee && peutLever ? `<button class="btn-lever" data-id="${p.id}">Lever</button>` : ''}
                 <button class="btn-supprimer" data-id="${p.id}">Supprimer</button>
             </td>
         </tr>
@@ -990,7 +1026,7 @@ function afficherHoraires(horaires) {
 async function supprimerHoraire(id) {
     if (!confirm('Supprimer cet horaire ?')) return;
     try {
-        const res = await fetch(`${API}/api/horaires/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API}/api/horaires/${id}?admin_id=${adminConnecte.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-horaires');
         chargerHoraires(document.getElementById('filtre-horaire-site').value);
@@ -1000,10 +1036,12 @@ async function supprimerHoraire(id) {
 }
 
 // Remplit les selects de site pour horaires (filtre + formulaire).
+// Admin SITE → formulaire limité à son site, pré-sélectionné.
 async function chargerSitesDansHoraires() {
     try {
         const res = await fetch(`${API}/sites`);
         const sites = await res.json();
+        const siteId = siteIdAdmin();
 
         const filtre = document.getElementById('filtre-horaire-site');
         filtre.innerHTML = '<option value="">Tous les sites</option>';
@@ -1011,15 +1049,23 @@ async function chargerSitesDansHoraires() {
         const selectForm = document.querySelector('#form-horaire select[name="site_id"]');
         selectForm.innerHTML = '<option value="">-- Choisir un site --</option>';
 
+        const sitesForm = siteId ? sites.filter(s => s.id === siteId) : sites;
+
         sites.forEach(s => {
-            const label = `${s.nom} (${s.ville ?? s.id})`;
-            [filtre, selectForm].forEach(sel => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = label;
-                sel.appendChild(opt);
-            });
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            filtre.appendChild(opt);
         });
+
+        sitesForm.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            selectForm.appendChild(opt);
+        });
+
+        if (siteId) selectForm.value = siteId;
     } catch {
         afficherErreur('erreur-horaires', 'Impossible de charger les sites.');
     }
@@ -1053,7 +1099,7 @@ document.getElementById('form-horaire').addEventListener('submit', async e => {
     };
 
     try {
-        const res = await fetch(`${API}/api/horaires`, {
+        const res = await fetch(`${API}/api/horaires?admin_id=${adminConnecte.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -1114,7 +1160,7 @@ function afficherFermetures(fermetures) {
 async function supprimerFermeture(id) {
     if (!confirm('Supprimer cette fermeture ?')) return;
     try {
-        const res = await fetch(`${API}/api/fermetures/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API}/api/fermetures/${id}?admin_id=${adminConnecte.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-fermetures');
         chargerFermetures(filtresFermeturesActuels());
@@ -1134,26 +1180,37 @@ function filtresFermeturesActuels() {
 }
 
 // Remplit les selects de site pour fermetures (filtre + formulaire).
+// Admin SITE → pas d'option "Globale" dans le formulaire, uniquement son site.
 async function chargerSitesDansFermetures() {
     try {
         const res = await fetch(`${API}/sites`);
         const sites = await res.json();
+        const siteId = siteIdAdmin();
 
         const filtre = document.getElementById('filtre-fermeture-site');
         filtre.innerHTML = '<option value="">Tous les sites</option>';
 
         const selectForm = document.querySelector('#form-fermeture select[name="site_id"]');
-        selectForm.innerHTML = '<option value="">-- Globale (tous les sites) --</option>';
+        // SITE : pas d'option globale — GLOBAL : option globale disponible
+        selectForm.innerHTML = siteId ? '' : '<option value="">-- Globale (tous les sites) --</option>';
+
+        const sitesForm = siteId ? sites.filter(s => s.id === siteId) : sites;
 
         sites.forEach(s => {
-            const label = `${s.nom} (${s.ville ?? s.id})`;
-            [filtre, selectForm].forEach(sel => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = label;
-                sel.appendChild(opt);
-            });
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            filtre.appendChild(opt);
         });
+
+        sitesForm.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            selectForm.appendChild(opt);
+        });
+
+        if (siteId) selectForm.value = siteId;
     } catch {
         afficherErreur('erreur-fermetures', 'Impossible de charger les sites.');
     }
@@ -1194,7 +1251,7 @@ document.getElementById('form-fermeture').addEventListener('submit', async e => 
     }
 
     try {
-        const res = await fetch(`${API}/api/fermetures`, {
+        const res = await fetch(`${API}/api/fermetures?admin_id=${adminConnecte.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
