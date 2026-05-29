@@ -41,7 +41,7 @@ function afficherDashboard() {
     chargerSitesDansHoraires();
     chargerHoraires(siteId);
     chargerSitesDansFermetures();
-    chargerFermetures(siteId ? { site_id: siteId } : {});
+    siteId ? chargerFermeturesAdminSite(siteId) : chargerFermetures({});
     chargerAdministrateurs();
     chargerSitesDansStats();
     chargerStats(siteId ?? '');
@@ -1193,6 +1193,21 @@ document.getElementById('form-horaire').addEventListener('submit', async e => {
 });
 
 // ── FERMETURES ───────────────────────────────────────────────
+// Admin SITE → charge les fermetures de son site + les fermetures globales.
+async function chargerFermeturesAdminSite(siteId) {
+    try {
+        const [resSite, resGlobal] = await Promise.all([
+            fetch(`${API}/api/fermetures?site_id=${siteId}`),
+            fetch(`${API}/api/fermetures?globales=1`),
+        ]);
+        const site   = await resSite.json();
+        const global = await resGlobal.json();
+        afficherFermetures([...site, ...global]);
+    } catch {
+        afficherErreur('erreur-fermetures', 'Impossible de contacter le serveur.');
+    }
+}
+
 // Appelle GET /api/fermetures (avec filtres optionnels) et affiche le résultat.
 async function chargerFermetures(params = {}) {
     try {
@@ -1241,7 +1256,8 @@ async function supprimerFermeture(id) {
         const res = await fetch(`${API}/api/fermetures/${id}?admin_id=${adminConnecte.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-fermetures');
-        chargerFermetures(filtresFermeturesActuels());
+        const sid = siteIdAdmin();
+        sid ? chargerFermeturesAdminSite(sid) : chargerFermetures(filtresFermeturesActuels());
     } catch {
         afficherErreur('erreur-fermetures', 'Erreur lors de la suppression.');
     }
@@ -1265,30 +1281,29 @@ async function chargerSitesDansFermetures() {
         const sites = await res.json();
         const siteId = siteIdAdmin();
 
-        const filtre = document.getElementById('filtre-fermeture-site');
-        filtre.innerHTML = '<option value="">Tous les sites</option>';
-
+        const filtre     = document.getElementById('filtre-fermeture-site');
         const selectForm = document.querySelector('#form-fermeture select[name="site_id"]');
-        // SITE : pas d'option globale — GLOBAL : option globale disponible
+
+        filtre.innerHTML     = '<option value="">Tous les sites</option>';
         selectForm.innerHTML = siteId ? '' : '<option value="">-- Globale (tous les sites) --</option>';
 
-        const sitesForm = siteId ? sites.filter(s => s.id === siteId) : sites;
+        const sitesAfficher = siteId ? sites.filter(s => s.id === siteId) : sites;
 
-        sites.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
-            filtre.appendChild(opt);
+        sitesAfficher.forEach(s => {
+            const label = `${s.nom} (${s.ville ?? s.id})`;
+            [filtre, selectForm].forEach(sel => {
+                const opt = document.createElement('option');
+                opt.value       = s.id;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
         });
 
-        sitesForm.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
-            selectForm.appendChild(opt);
-        });
-
-        if (siteId) selectForm.value = siteId;
+        if (siteId) {
+            filtre.value     = siteId;
+            filtre.disabled  = true;
+            selectForm.value = siteId;
+        }
     } catch {
         afficherErreur('erreur-fermetures', 'Impossible de charger les sites.');
     }
