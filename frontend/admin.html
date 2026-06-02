@@ -86,6 +86,21 @@
                 </div>
             </form>
 
+            <!-- Formulaire modification -->
+            <form id="form-modifier-site" style="display:none">
+                <h3>Modifier le site <span id="modifier-site-id"></span></h3>
+                <input type="hidden" name="site_id">
+                <label>Nom <input type="text" name="nom" required></label>
+                <label>Adresse <input type="text" name="adresse"></label>
+                <label>Ville <input type="text" name="ville"></label>
+                <label>Code postal <input type="text" name="code_postal"></label>
+                <label>Actif <input type="checkbox" name="est_actif"></label>
+                <div class="form-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" id="btn-annuler-modifier-site">Annuler</button>
+                </div>
+            </form>
+
             <!-- Message d'erreur -->
             <p id="erreur-sites" style="display:none;color:red"></p>
 
@@ -126,6 +141,24 @@
                 <div class="form-actions">
                     <button type="submit">Créer</button>
                     <button type="button" id="btn-annuler-terrain">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Formulaire modification -->
+            <form id="form-modifier-terrain" style="display:none">
+                <h3>Modifier le terrain <span id="modifier-terrain-id"></span></h3>
+                <input type="hidden" name="terrain_id">
+                <label>Site
+                    <select name="site_id" required>
+                        <option value="">-- Choisir un site --</option>
+                    </select>
+                </label>
+                <label>Numéro de terrain <input type="number" name="num_terrain" min="1" required></label>
+                <label>Libellé <input type="text" name="libelle"></label>
+                <label>Actif <input type="checkbox" name="est_actif"></label>
+                <div class="form-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" id="btn-annuler-modifier-terrain">Annuler</button>
                 </div>
             </form>
 
@@ -197,6 +230,20 @@
                 <div class="form-actions">
                     <button type="submit">Créer</button>
                     <button type="button" id="btn-annuler-membre">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Formulaire modification -->
+            <form id="form-modifier-membre" style="display:none">
+                <h3>Modifier le membre <span id="modifier-membre-id"></span></h3>
+                <input type="hidden" name="membre_id">
+                <label>Nom <input type="text" name="nom" required></label>
+                <label>Prénom <input type="text" name="prenom" required></label>
+                <label>Email <input type="email" name="email"></label>
+                <label>Téléphone <input type="text" name="telephone"></label>
+                <div class="form-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" id="btn-annuler-modifier-membre">Annuler</button>
                 </div>
             </form>
 
@@ -447,6 +494,19 @@
                 </div>
             </form>
 
+            <!-- Formulaire modification -->
+            <form id="form-modifier-horaire" style="display:none">
+                <h3>Modifier l'horaire <span id="modifier-horaire-id"></span></h3>
+                <input type="hidden" name="horaire_id">
+                <label>Année <input type="number" name="annee" min="2024" max="2099" required></label>
+                <label>Heure début <input type="time" name="heure_debut" required></label>
+                <label>Heure fin <input type="time" name="heure_fin" required></label>
+                <div class="form-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" id="btn-annuler-modifier-horaire">Annuler</button>
+                </div>
+            </form>
+
             <!-- Message d'erreur -->
             <p id="erreur-horaires" style="display:none;color:red"></p>
 
@@ -502,6 +562,19 @@
                 <div class="form-actions">
                     <button type="submit">Créer</button>
                     <button type="button" id="btn-annuler-fermeture">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Formulaire modification -->
+            <form id="form-modifier-fermeture" style="display:none">
+                <h3>Modifier la fermeture <span id="modifier-fermeture-id"></span></h3>
+                <input type="hidden" name="fermeture_id">
+                <label>Date début <input type="date" name="date_debut" required></label>
+                <label>Date fin <input type="date" name="date_fin" required></label>
+                <label>Raison <input type="text" name="raison"></label>
+                <div class="form-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" id="btn-annuler-modifier-fermeture">Annuler</button>
                 </div>
             </form>
 
@@ -564,6 +637,19 @@
                 <div class="form-actions">
                     <button type="submit">Créer</button>
                     <button type="button" id="btn-annuler-admin">Annuler</button>
+                </div>
+            </form>
+
+            <!-- Formulaire modification -->
+            <form id="form-modifier-admin" style="display:none">
+                <h3>Modifier l'administrateur <span id="modifier-admin-id"></span></h3>
+                <input type="hidden" name="admin_id">
+                <label>Nom <input type="text" name="nom"></label>
+                <label>Prénom <input type="text" name="prenom"></label>
+                <label>Email <input type="email" name="email"></label>
+                <div class="form-actions">
+                    <button type="submit">Enregistrer</button>
+                    <button type="button" id="btn-annuler-modifier-admin">Annuler</button>
                 </div>
             </form>
 

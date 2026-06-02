@@ -206,10 +206,15 @@ function afficherSites(sites) {
             <td>${s.ville ?? '—'}</td>
             <td>${s.code_postal ?? '—'}</td>
             <td>
-                ${peutSupprimer ? `<button class="btn-supprimer" data-id="${s.id}">Supprimer</button>` : '—'}
+                <button class="btn-modifier" data-site='${JSON.stringify(s)}'>Modifier</button>
+                ${peutSupprimer ? `<button class="btn-supprimer" data-id="${s.id}">Supprimer</button>` : ''}
             </td>
         </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-modifier').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormModifierSite(JSON.parse(btn.dataset.site)));
+    });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => supprimerSite(btn.dataset.id));
@@ -228,6 +233,56 @@ async function supprimerSite(id) {
         afficherErreur('erreur-sites', 'Erreur lors de la suppression.');
     }
 }
+
+// Ouvre le formulaire de modification en pré-remplissant les données du site.
+function ouvrirFormModifierSite(site) {
+    const form = document.getElementById('form-modifier-site');
+    document.getElementById('modifier-site-id').textContent = `#${site.id}`;
+    form.site_id.value      = site.id;
+    form.nom.value          = site.nom ?? '';
+    form.adresse.value      = site.adresse ?? '';
+    form.ville.value        = site.ville ?? '';
+    form.code_postal.value  = site.code_postal ?? '';
+    form.est_actif.checked  = !!site.est_actif;
+
+    document.getElementById('form-site').style.display = 'none';
+    form.style.display = 'block';
+}
+
+// Cache et réinitialise le formulaire de modification.
+document.getElementById('btn-annuler-modifier-site').addEventListener('click', () => {
+    document.getElementById('form-modifier-site').style.display = 'none';
+    document.getElementById('form-modifier-site').reset();
+});
+
+// Appelle PUT /sites/:id?admin_id=X avec les données modifiées, puis recharge la liste.
+document.getElementById('form-modifier-site').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id   = form.site_id.value;
+    const body = {
+        nom:         form.nom.value,
+        adresse:     form.adresse.value || null,
+        ville:       form.ville.value || null,
+        code_postal: form.code_postal.value || null,
+        est_actif:   form.est_actif.checked,
+    };
+
+    try {
+        const res = await fetch(`${API}/sites/${id}?admin_id=${adminConnecte.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-sites');
+        chargerSites(siteIdAdmin());
+    } catch {
+        afficherErreur('erreur-sites', 'Erreur lors de la modification du site.');
+    }
+});
 
 // Affiche le formulaire de création quand on clique sur "+ Nouveau site".
 document.getElementById('btn-nouveau-site').addEventListener('click', () => {
@@ -281,7 +336,7 @@ async function chargerTerrains(siteId = null) {
 }
 
 // Injecte les terrains dans le tableau HTML.
-// Attache aussi les listeners de suppression sur chaque bouton généré.
+// Attache les listeners de modification et suppression sur chaque bouton généré.
 function afficherTerrains(terrains) {
     const tbody = document.getElementById('tbody-terrains');
 
@@ -298,10 +353,15 @@ function afficherTerrains(terrains) {
             <td>${t.libelle ?? '—'}</td>
             <td>${t.est_actif ? 'Oui' : 'Non'}</td>
             <td>
+                <button class="btn-modifier" data-terrain='${JSON.stringify(t)}'>Modifier</button>
                 <button class="btn-supprimer" data-id="${t.id}">Supprimer</button>
             </td>
         </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-modifier').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormModifierTerrain(JSON.parse(btn.dataset.terrain)));
+    });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => supprimerTerrain(btn.dataset.id));
@@ -320,6 +380,81 @@ async function supprimerTerrain(id) {
         afficherErreur('erreur-terrains', 'Erreur lors de la suppression.');
     }
 }
+
+// Ouvre le formulaire de modification en pré-remplissant les données du terrain.
+// Admin SITE → site_id verrouillé sur son site.
+async function ouvrirFormModifierTerrain(terrain) {
+    const form = document.getElementById('form-modifier-terrain');
+    document.getElementById('modifier-terrain-id').textContent = `#${terrain.id}`;
+    form.terrain_id.value  = terrain.id;
+    form.num_terrain.value = terrain.num_terrain;
+    form.libelle.value     = terrain.libelle ?? '';
+    form.est_actif.checked = !!terrain.est_actif;
+
+    await chargerSitesDansSelectModif();
+    form.querySelector('select[name="site_id"]').value = terrain.site_id;
+
+    document.getElementById('form-terrain').style.display = 'none';
+    form.style.display = 'block';
+}
+
+// Remplit le <select> sites du formulaire de modification.
+// Admin SITE → uniquement son site, select désactivé.
+async function chargerSitesDansSelectModif() {
+    try {
+        const res = await fetch(`${API}/sites`);
+        let sites = await res.json();
+        const siteId = siteIdAdmin();
+        if (siteId) sites = sites.filter(s => s.id === siteId);
+
+        const select = document.querySelector('#form-modifier-terrain select[name="site_id"]');
+        select.innerHTML = '<option value="">-- Choisir un site --</option>';
+        sites.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nom} (${s.ville ?? s.id})`;
+            select.appendChild(opt);
+        });
+        select.disabled = !!siteId;
+        if (siteId) select.value = siteId;
+    } catch {
+        afficherErreur('erreur-terrains', 'Impossible de charger les sites.');
+    }
+}
+
+// Cache et réinitialise le formulaire de modification.
+document.getElementById('btn-annuler-modifier-terrain').addEventListener('click', () => {
+    document.getElementById('form-modifier-terrain').style.display = 'none';
+    document.getElementById('form-modifier-terrain').reset();
+});
+
+// Appelle PUT /terrains/:id?admin_id=X avec les données modifiées, puis recharge la liste.
+document.getElementById('form-modifier-terrain').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id   = form.terrain_id.value;
+    const body = {
+        site_id:     parseInt(form.site_id.value),
+        num_terrain: parseInt(form.num_terrain.value),
+        libelle:     form.libelle.value || null,
+        est_actif:   form.est_actif.checked,
+    };
+
+    try {
+        const res = await fetch(`${API}/terrains/${id}?admin_id=${adminConnecte.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-terrains');
+        chargerTerrains(siteIdAdmin());
+    } catch {
+        afficherErreur('erreur-terrains', 'Erreur lors de la modification du terrain.');
+    }
+});
 
 // Remplit le <select> des sites dans le formulaire terrain.
 // Admin SITE → uniquement son site, pré-sélectionné.
@@ -424,6 +559,7 @@ function afficherMembres(membres, inactifs = false) {
             <td>${m.site_id ?? '—'}</td>
             <td>${m.email ?? '—'}</td>
             <td>
+                ${!inactifs ? `<button class="btn-modifier" data-membre='${JSON.stringify(m)}'>Modifier</button>` : ''}
                 ${inactifs
                     ? `<button class="btn-reactiver" data-id="${m.id}">Réactiver</button>`
                     : `<button class="btn-supprimer" data-id="${m.id}">Désactiver</button>`
@@ -431,6 +567,10 @@ function afficherMembres(membres, inactifs = false) {
             </td>
         </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-modifier').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormModifierMembre(JSON.parse(btn.dataset.membre)));
+    });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => desactiverMembre(btn.dataset.id));
@@ -470,6 +610,55 @@ async function reactiverMembre(id) {
         afficherErreur('erreur-membres', 'Erreur lors de la réactivation.');
     }
 }
+
+// Ouvre le formulaire de modification en pré-remplissant les données du membre.
+// Seuls nom, prenom, email, telephone sont modifiables (pas categorie ni site_id).
+function ouvrirFormModifierMembre(membre) {
+    const form = document.getElementById('form-modifier-membre');
+    document.getElementById('modifier-membre-id').textContent = `#${membre.id} — ${membre.matricule}`;
+    form.membre_id.value  = membre.id;
+    form.nom.value        = membre.nom ?? '';
+    form.prenom.value     = membre.prenom ?? '';
+    form.email.value      = membre.email ?? '';
+    form.telephone.value  = membre.telephone ?? '';
+
+    document.getElementById('form-membre').style.display = 'none';
+    form.style.display = 'block';
+}
+
+// Cache et réinitialise le formulaire de modification.
+document.getElementById('btn-annuler-modifier-membre').addEventListener('click', () => {
+    document.getElementById('form-modifier-membre').style.display = 'none';
+    document.getElementById('form-modifier-membre').reset();
+});
+
+// Appelle PUT /api/membres/:id avec les données modifiées, puis recharge la liste.
+document.getElementById('form-modifier-membre').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id   = form.membre_id.value;
+    const body = {
+        nom:       form.nom.value,
+        prenom:    form.prenom.value,
+        email:     form.email.value || null,
+        telephone: form.telephone.value || null,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/membres/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-membres');
+        chargerMembres(document.getElementById('filtre-categorie').value);
+    } catch {
+        afficherErreur('erreur-membres', 'Erreur lors de la modification du membre.');
+    }
+});
 
 // Recharge la liste quand le filtre catégorie change.
 document.getElementById('filtre-categorie').addEventListener('change', e => {
@@ -1094,10 +1283,15 @@ function afficherHoraires(horaires) {
             <td>${h.heure_debut}</td>
             <td>${h.heure_fin}</td>
             <td>
+                <button class="btn-modifier" data-horaire='${JSON.stringify(h)}'>Modifier</button>
                 <button class="btn-supprimer" data-id="${h.id}">Supprimer</button>
             </td>
         </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-modifier').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormModifierHoraire(JSON.parse(btn.dataset.horaire)));
+    });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => supprimerHoraire(btn.dataset.id));
@@ -1116,6 +1310,53 @@ async function supprimerHoraire(id) {
         afficherErreur('erreur-horaires', 'Erreur lors de la suppression.');
     }
 }
+
+// Ouvre le formulaire de modification en pré-remplissant les données de l'horaire.
+// site_id non modifiable — seuls annee, heure_debut, heure_fin sont éditables.
+function ouvrirFormModifierHoraire(horaire) {
+    const form = document.getElementById('form-modifier-horaire');
+    document.getElementById('modifier-horaire-id').textContent = `#${horaire.id} — Site ${horaire.site_id}`;
+    form.horaire_id.value  = horaire.id;
+    form.annee.value       = horaire.annee;
+    form.heure_debut.value = horaire.heure_debut.substring(0, 5);
+    form.heure_fin.value   = horaire.heure_fin.substring(0, 5);
+
+    document.getElementById('form-horaire').style.display = 'none';
+    form.style.display = 'block';
+}
+
+// Cache et réinitialise le formulaire de modification.
+document.getElementById('btn-annuler-modifier-horaire').addEventListener('click', () => {
+    document.getElementById('form-modifier-horaire').style.display = 'none';
+    document.getElementById('form-modifier-horaire').reset();
+});
+
+// Appelle PUT /api/horaires/:id?admin_id=X, puis recharge la liste.
+document.getElementById('form-modifier-horaire').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id   = form.horaire_id.value;
+    const body = {
+        annee:       parseInt(form.annee.value),
+        heure_debut: form.heure_debut.value + ':00',
+        heure_fin:   form.heure_fin.value + ':00',
+    };
+
+    try {
+        const res = await fetch(`${API}/api/horaires/${id}?admin_id=${adminConnecte.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-horaires');
+        chargerHoraires(siteIdAdmin() ?? document.getElementById('filtre-horaire-site').value);
+    } catch {
+        afficherErreur('erreur-horaires', 'Erreur lors de la modification (doublon site+année ?).');
+    }
+});
 
 // Remplit les selects de site pour horaires (filtre + formulaire).
 // Admin SITE → formulaire limité à son site, pré-sélectionné.
@@ -1235,7 +1476,10 @@ function afficherFermetures(fermetures) {
         return;
     }
 
-    tbody.innerHTML = fermetures.map(f => `
+    const estSite = adminConnecte?.type === 'SITE';
+    tbody.innerHTML = fermetures.map(f => {
+        const peutModifier = !estSite || f.site_id !== null;
+        return `
         <tr>
             <td>${f.id}</td>
             <td>${f.site_id ? f.site_id : 'Globale'}</td>
@@ -1243,10 +1487,15 @@ function afficherFermetures(fermetures) {
             <td>${f.date_fin}</td>
             <td>${f.raison ?? '—'}</td>
             <td>
+                ${peutModifier ? `<button class="btn-modifier" data-fermeture='${JSON.stringify(f)}'>Modifier</button>` : ''}
                 <button class="btn-supprimer" data-id="${f.id}">Supprimer</button>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('.btn-modifier').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormModifierFermeture(JSON.parse(btn.dataset.fermeture)));
+    });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => supprimerFermeture(btn.dataset.id));
@@ -1266,6 +1515,55 @@ async function supprimerFermeture(id) {
         afficherErreur('erreur-fermetures', 'Erreur lors de la suppression.');
     }
 }
+
+// Ouvre le formulaire de modification en pré-remplissant les données de la fermeture.
+// date_debut/date_fin au format YYYY-MM-DD, compatible avec <input type="date">.
+function ouvrirFormModifierFermeture(fermeture) {
+    const form = document.getElementById('form-modifier-fermeture');
+    const label = fermeture.site_id ? `#${fermeture.id} — Site ${fermeture.site_id}` : `#${fermeture.id} — Globale`;
+    document.getElementById('modifier-fermeture-id').textContent = label;
+    form.fermeture_id.value = fermeture.id;
+    form.date_debut.value   = fermeture.date_debut;
+    form.date_fin.value     = fermeture.date_fin;
+    form.raison.value       = fermeture.raison ?? '';
+
+    document.getElementById('form-fermeture').style.display = 'none';
+    form.style.display = 'block';
+}
+
+// Cache et réinitialise le formulaire de modification.
+document.getElementById('btn-annuler-modifier-fermeture').addEventListener('click', () => {
+    document.getElementById('form-modifier-fermeture').style.display = 'none';
+    document.getElementById('form-modifier-fermeture').reset();
+});
+
+// Appelle PUT /api/fermetures/:id?admin_id=X, puis recharge la liste.
+document.getElementById('form-modifier-fermeture').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id   = form.fermeture_id.value;
+    const body = {
+        date_debut: form.date_debut.value,
+        date_fin:   form.date_fin.value,
+        raison:     form.raison.value || null,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/fermetures/${id}?admin_id=${adminConnecte.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-fermetures');
+        const sid = siteIdAdmin();
+        sid ? chargerFermeturesAdminSite(sid) : chargerFermetures(filtresFermeturesActuels());
+    } catch {
+        afficherErreur('erreur-fermetures', 'Erreur lors de la modification.');
+    }
+});
 
 // Retourne les paramètres de filtre fermetures actuellement actifs.
 function filtresFermeturesActuels() {
@@ -1397,6 +1695,7 @@ function afficherAdministrateurs(admins, inactifs = false) {
             <td>${a.type}</td>
             <td>${a.site_id ? a.site_id : 'Global'}</td>
             <td>
+                ${!inactifs ? `<button class="btn-modifier" data-admin='${JSON.stringify(a)}'>Modifier</button>` : ''}
                 ${inactifs
                     ? `<button class="btn-reactiver" data-id="${a.id}">Réactiver</button>`
                     : `<button class="btn-supprimer" data-id="${a.id}">Désactiver</button>`
@@ -1404,6 +1703,10 @@ function afficherAdministrateurs(admins, inactifs = false) {
             </td>
         </tr>
     `).join('');
+
+    tbody.querySelectorAll('.btn-modifier').forEach(btn => {
+        btn.addEventListener('click', () => ouvrirFormModifierAdmin(JSON.parse(btn.dataset.admin)));
+    });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
         btn.addEventListener('click', () => desactiverAdmin(btn.dataset.id));
@@ -1443,6 +1746,53 @@ async function reactiverAdmin(id) {
         afficherErreur('erreur-administrateurs', 'Erreur lors de la réactivation.');
     }
 }
+
+// Ouvre le formulaire de modification en pré-remplissant les données de l'admin.
+// login, type et site_id ne sont pas modifiables côté backend.
+function ouvrirFormModifierAdmin(admin) {
+    const form = document.getElementById('form-modifier-admin');
+    document.getElementById('modifier-admin-id').textContent = `#${admin.id} — ${admin.login}`;
+    form.admin_id.value = admin.id;
+    form.nom.value      = admin.nom ?? '';
+    form.prenom.value   = admin.prenom ?? '';
+    form.email.value    = admin.email ?? '';
+
+    document.getElementById('form-admin').style.display = 'none';
+    form.style.display = 'block';
+}
+
+// Cache et réinitialise le formulaire de modification.
+document.getElementById('btn-annuler-modifier-admin').addEventListener('click', () => {
+    document.getElementById('form-modifier-admin').style.display = 'none';
+    document.getElementById('form-modifier-admin').reset();
+});
+
+// Appelle PUT /api/administrateurs/:id avec les données modifiées, puis recharge la liste.
+document.getElementById('form-modifier-admin').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id   = form.admin_id.value;
+    const body = {
+        nom:    form.nom.value || null,
+        prenom: form.prenom.value || null,
+        email:  form.email.value || null,
+    };
+
+    try {
+        const res = await fetch(`${API}/api/administrateurs/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error();
+        form.style.display = 'none';
+        form.reset();
+        cacherErreur('erreur-administrateurs');
+        chargerAdministrateurs();
+    } catch {
+        afficherErreur('erreur-administrateurs', 'Erreur lors de la modification.');
+    }
+});
 
 // Recharge la liste quand la checkbox inactifs change.
 document.getElementById('filtre-admin-inactifs').addEventListener('change', () => {
