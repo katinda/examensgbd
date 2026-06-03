@@ -44,11 +44,12 @@ class InscriptionService {
     // Retourne l'ID de l'inscription créée, ou une string décrivant l'erreur.
     //
     // Erreurs possibles :
-    //   'reservation_introuvable' → la réservation n'existe pas → 404
-    //   'membre_introuvable'      → le membre n'existe pas ou est inactif → 404
-    //   'reservation_complete'    → la réservation a déjà 4 joueurs → 409
-    //   'deja_inscrit'            → ce membre est déjà inscrit à cette réservation → 409
-    public function addJoueur(int $reservationId, int $membreId): int|string {
+    //   'reservation_introuvable'         → la réservation n'existe pas → 404
+    //   'membre_introuvable'              → le membre n'existe pas ou est inactif → 404
+    //   'inscription_interdite_organisateur' → match PUBLIC : l'organisateur ne peut pas inscrire quelqu'un d'autre → 403
+    //   'reservation_complete'            → la réservation a déjà 4 joueurs → 409
+    //   'deja_inscrit'                    → ce membre est déjà inscrit à cette réservation → 409
+    public function addJoueur(int $reservationId, int $membreId, ?int $demandeurId = null): int|string {
         // Règle 1 : la réservation doit exister
         $reservation = $this->reservationRepository->findById($reservationId);
         if ($reservation === null) {
@@ -61,12 +62,22 @@ class InscriptionService {
             return 'membre_introuvable';
         }
 
-        // Règle 3 : la réservation ne peut pas dépasser 4 joueurs
+        // Règle 3 : dans un match PUBLIC, l'organisateur ne peut pas inscrire quelqu'un d'autre
+        if (
+            $reservation->getType() === 'PUBLIC'
+            && $demandeurId !== null
+            && $demandeurId === $reservation->getOrganisateurId()
+            && $membreId    !== $demandeurId
+        ) {
+            return 'inscription_interdite_organisateur';
+        }
+
+        // Règle 4 : la réservation ne peut pas dépasser 4 joueurs
         if ($this->inscriptionRepository->countByReservation($reservationId) >= 4) {
             return 'reservation_complete';
         }
 
-        // Règle 4 : un même joueur ne peut pas s'inscrire deux fois
+        // Règle 5 : un même joueur ne peut pas s'inscrire deux fois
         if ($this->inscriptionRepository->findByReservationAndMembre($reservationId, $membreId) !== null) {
             return 'deja_inscrit';
         }

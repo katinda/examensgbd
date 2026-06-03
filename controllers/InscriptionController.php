@@ -20,10 +20,11 @@ class InscriptionController {
     }
 
 
-    // POST /api/reservations/{id}/inscriptions → ajoute un joueur à la réservation
-    // Codes possibles : 201 (inscrit), 400 (champ manquant ou réservation complète), 404 (réservation/membre introuvable), 409 (déjà inscrit)
+    // POST /api/reservations/{id}/inscriptions?demandeur_id={id} → ajoute un joueur à la réservation
+    // Codes possibles : 201, 400, 403, 404, 409
     public function addJoueur(int $reservationId): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data        = json_decode(file_get_contents('php://input'), true);
+        $demandeurId = isset($_GET['demandeur_id']) ? (int) $_GET['demandeur_id'] : null;
 
         if (empty($data['membre_id'])) {
             header('Content-Type: application/json');
@@ -32,28 +33,32 @@ class InscriptionController {
             return;
         }
 
-        $result = $this->inscriptionService->addJoueur($reservationId, (int) $data['membre_id']);
+        $result = $this->inscriptionService->addJoueur($reservationId, (int) $data['membre_id'], $demandeurId);
 
         header('Content-Type: application/json');
 
         match ($result) {
-            'reservation_introuvable' => (function() use ($reservationId) {
+            'reservation_introuvable'            => (function() use ($reservationId) {
                 http_response_code(404);
                 echo json_encode(['erreur' => "Réservation $reservationId introuvable"]);
             })(),
-            'membre_introuvable'      => (function() use ($data) {
+            'membre_introuvable'                 => (function() use ($data) {
                 http_response_code(404);
                 echo json_encode(['erreur' => "Membre {$data['membre_id']} introuvable"]);
             })(),
-            'reservation_complete'    => (function() {
+            'inscription_interdite_organisateur' => (function() {
+                http_response_code(403);
+                echo json_encode(['erreur' => "Dans un match public, l'organisateur ne peut pas inscrire un autre joueur"]);
+            })(),
+            'reservation_complete'               => (function() {
                 http_response_code(409);
                 echo json_encode(['erreur' => 'Cette réservation est déjà complète (4 joueurs maximum)']);
             })(),
-            'deja_inscrit'            => (function() use ($data, $reservationId) {
+            'deja_inscrit'                       => (function() use ($data, $reservationId) {
                 http_response_code(409);
                 echo json_encode(['erreur' => "Le membre {$data['membre_id']} est déjà inscrit à cette réservation"]);
             })(),
-            default                   => (function() use ($result) {
+            default                              => (function() use ($result) {
                 http_response_code(201);
                 echo json_encode(['message' => 'Joueur inscrit avec succès', 'id' => $result], JSON_UNESCAPED_UNICODE);
             })(),
