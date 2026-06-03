@@ -81,13 +81,16 @@ class ReservationService {
     }
 
 
-    // Crée une nouvelle réservation — version minimale.
+    // Crée une nouvelle réservation.
     //
     // Validations effectuées :
-    //   'terrain_introuvable'    → le terrain n'existe pas → 404
-    //   'terrain_inactif'        → le terrain est fermé → 400
+    //   'terrain_introuvable'      → le terrain n'existe pas → 404
+    //   'terrain_inactif'          → le terrain est fermé → 400
     //   'organisateur_introuvable' → le membre n'existe pas → 404
-    //   'creneau_pris'           → ce créneau est déjà réservé → 409
+    //   'date_passee'              → la date du match est dans le passé → 400
+    //   'trop_tot'                 → trop tôt pour réserver (G:21j, S:14j, L:5j) → 400
+    //   'site_non_autorise'        → membre S essaie de réserver sur un autre site → 403
+    //   'creneau_pris'             → ce créneau est déjà réservé → 409
     //
     // Calcul automatique : Heure_Fin = Heure_Debut + 1h30
     public function createReservation(array $data): int|string {
@@ -108,7 +111,31 @@ class ReservationService {
             return 'organisateur_introuvable';
         }
 
-        // Règle 4 : le créneau ne doit pas être déjà pris
+        // Règle 4 : la date du match ne doit pas être dans le passé
+        $aujourdhui = new DateTime('today');
+        $dateMatch  = new DateTime($data['date_match']);
+        if ($dateMatch <= $aujourdhui) {
+            return 'date_passee';
+        }
+
+        // Règle 5 : vérifier le délai de réservation selon la catégorie du membre
+        $delaiMax = match($membre->getCategorie()) {
+            'G' => 21,
+            'S' => 14,
+            'L' => 5,
+            default => 0,
+        };
+        $joursAvant = (int) $aujourdhui->diff($dateMatch)->days;
+        if ($joursAvant > $delaiMax) {
+            return 'trop_tot';
+        }
+
+        // Règle 6 : un membre S ne peut réserver que sur son propre site
+        if ($membre->getCategorie() === 'S' && $membre->getSiteId() !== $terrain->getSiteId()) {
+            return 'site_non_autorise';
+        }
+
+        // Règle 7 : le créneau ne doit pas être déjà pris
         $dejaReserve = $this->reservationRepository->findByTerrainDateHeure(
             (int) $data['terrain_id'],
             $data['date_match'],

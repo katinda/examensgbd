@@ -26,15 +26,16 @@ class ReservationServiceTest extends TestCase {
         return new Terrain($id, $siteId, $id, "Terrain $id", $actif);
     }
 
-    private function creerMembre(int $id, bool $actif = true): Membre {
-        return new Membre($id, 'G0001', 'Dupont', 'Jean', null, null, 'G', null, $actif);
+    private function creerMembre(int $id, bool $actif = true, string $categorie = 'G', ?int $siteId = null): Membre {
+        $matricule = $categorie . '0001';
+        return new Membre($id, $matricule, 'Dupont', 'Jean', null, null, $categorie, $siteId, $actif);
     }
 
     private function creerData(array $overrides = []): array {
         return array_merge([
             'terrain_id'      => 1,
             'organisateur_id' => 1,
-            'date_match'      => '2026-05-10',
+            'date_match'      => (new DateTime('+3 days'))->format('Y-m-d'),
             'heure_debut'     => '10:00:00',
             'type'            => 'PRIVE',
         ], $overrides);
@@ -177,6 +178,73 @@ class ReservationServiceTest extends TestCase {
         $mock  = $this->createStub(AdministrateurRepository::class);
         $mock->method('findById')->willReturn($admin);
         return $mock;
+    }
+
+    // ─── Délai de réservation ────────────────────────────────────────────────
+
+    private function creerServiceSimple(Terrain $terrain, Membre $membre, ?string $dateHeure = null): ReservationService {
+        $mockRepo = $this->createStub(ReservationRepository::class);
+        $mockRepo->method('findByTerrainDateHeure')->willReturn(null);
+        $mockTerrain = $this->createStub(TerrainRepository::class);
+        $mockTerrain->method('findById')->willReturn($terrain);
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockMembre->method('findById')->willReturn($membre);
+        return new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerPdo());
+    }
+
+    // Date dans le passé → date_passee
+    public function testCreateReservationRetourneDatePassee(): void {
+        $service = $this->creerServiceSimple($this->creerTerrain(1, true), $this->creerMembre(1));
+        $result  = $service->createReservation($this->creerData(['date_match' => '2020-01-01']));
+        $this->assertEquals('date_passee', $result);
+    }
+
+    // Membre G, match dans 25 jours → trop_tot (max 21j)
+    public function testCreateReservationTropTotMembreG(): void {
+        $service = $this->creerServiceSimple($this->creerTerrain(1, true), $this->creerMembre(1, true, 'G'));
+        $result  = $service->createReservation($this->creerData(['date_match' => (new DateTime('+25 days'))->format('Y-m-d')]));
+        $this->assertEquals('trop_tot', $result);
+    }
+
+    // Membre S, match dans 16 jours → trop_tot (max 14j)
+    public function testCreateReservationTropTotMembreS(): void {
+        $service = $this->creerServiceSimple($this->creerTerrain(1, true, 1), $this->creerMembre(1, true, 'S', 1));
+        $result  = $service->createReservation($this->creerData(['date_match' => (new DateTime('+16 days'))->format('Y-m-d')]));
+        $this->assertEquals('trop_tot', $result);
+    }
+
+    // Membre L, match dans 6 jours → trop_tot (max 5j)
+    public function testCreateReservationTropTotMembreL(): void {
+        $service = $this->creerServiceSimple($this->creerTerrain(1, true), $this->creerMembre(1, true, 'L'));
+        $result  = $service->createReservation($this->creerData(['date_match' => (new DateTime('+6 days'))->format('Y-m-d')]));
+        $this->assertEquals('trop_tot', $result);
+    }
+
+    // Membre S, terrain d'un autre site → site_non_autorise
+    public function testCreateReservationSiteNonAutoriseMembreS(): void {
+        $service = $this->creerServiceSimple($this->creerTerrain(1, true, 2), $this->creerMembre(1, true, 'S', 1));
+        $result  = $service->createReservation($this->creerData(['date_match' => (new DateTime('+3 days'))->format('Y-m-d')]));
+        $this->assertEquals('site_non_autorise', $result);
+    }
+
+    // Membre S, terrain de son site → OK (délai respecté)
+    public function testCreateReservationMembreSAccepteSonSite(): void {
+        $mockRepo = $this->createStub(ReservationRepository::class);
+        $mockRepo->method('findByTerrainDateHeure')->willReturn(null);
+        $mockRepo->method('insert')->willReturn(1);
+        $mockTerrain = $this->createStub(TerrainRepository::class);
+        $mockTerrain->method('findById')->willReturn($this->creerTerrain(1, true, 1));
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockMembre->method('findById')->willReturn($this->creerMembre(1, true, 'S', 1));
+        $mockInscription = $this->createStub(InscriptionRepository::class);
+
+        $pdo = new PDO('sqlite::memory:');
+        $pdo->exec('CREATE TABLE Reservations (Reservation_ID INTEGER PRIMARY KEY AUTOINCREMENT, Terrain_ID INT, Organisateur_ID INT, Date_Match TEXT, Heure_Debut TEXT, Heure_Fin TEXT, Type TEXT, Etat TEXT DEFAULT "EN_COURS", Prix_Total REAL DEFAULT 60.0, Date_Creation TEXT, LastUpdate TEXT)');
+        $pdo->exec('CREATE TABLE Inscriptions (Inscription_ID INTEGER PRIMARY KEY AUTOINCREMENT, Reservation_ID INT, Membre_ID INT, Est_Organisateur INT DEFAULT 0)');
+
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $mockInscription, $this->createStub(AdministrateurRepository::class), $pdo);
+        $result  = $service->createReservation($this->creerData(['date_match' => (new DateTime('+3 days'))->format('Y-m-d')]));
+        $this->assertEquals(1, $result);
     }
 
     // Admin GLOBAL → voit toutes les réservations du membre

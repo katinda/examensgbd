@@ -102,6 +102,18 @@ class ReservationController {
                 http_response_code(400);
                 echo json_encode(['erreur' => "Terrain {$data['terrain_id']} inactif"]);
             })(),
+            'date_passee'              => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'La date du match ne peut pas être dans le passé']);
+            })(),
+            'trop_tot'                 => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Il est trop tôt pour réserver ce créneau (G: 21j, S: 14j, L: 5j)']);
+            })(),
+            'site_non_autorise'        => (function() {
+                http_response_code(403);
+                echo json_encode(['erreur' => 'Un membre de catégorie S ne peut réserver que sur son propre site']);
+            })(),
             'organisateur_introuvable' => (function() use ($data) {
                 http_response_code(404);
                 echo json_encode(['erreur' => "Membre {$data['organisateur_id']} introuvable"]);
