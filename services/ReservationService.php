@@ -5,6 +5,8 @@ require_once __DIR__ . '/../repositories/TerrainRepository.php';
 require_once __DIR__ . '/../repositories/MembreRepository.php';
 require_once __DIR__ . '/../repositories/InscriptionRepository.php';
 require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
+require_once __DIR__ . '/../repositories/HoraireSiteRepository.php';
+require_once __DIR__ . '/../repositories/FermetureRepository.php';
 
 // Le service contient la logique métier des réservations.
 // Version minimale : vérifie terrain + organisateur, calcule Heure_Fin, insère.
@@ -18,6 +20,8 @@ class ReservationService {
         private MembreRepository         $membreRepository,
         private InscriptionRepository    $inscriptionRepository,
         private AdministrateurRepository $adminRepository,
+        private HoraireSiteRepository   $horaireRepository,
+        private FermetureRepository     $fermetureRepository,
         private PDO                      $pdo
     ) {}
 
@@ -135,7 +139,39 @@ class ReservationService {
             return 'site_non_autorise';
         }
 
-        // Règle 7 : le créneau ne doit pas être déjà pris
+        // Règle 7 : un horaire doit exister pour ce site et cette année
+        $annee   = (int) date('Y', strtotime($data['date_match']));
+        $horaire = $this->horaireRepository->findBySiteAndAnnee($terrain->getSiteId(), $annee);
+        if ($horaire === null) {
+            return 'horaire_introuvable';
+        }
+
+        // Règle 8 : l'heure de début et de fin doivent être dans les horaires du site
+        $heureDebutMatch = $data['heure_debut'];
+        $heureFinMatch   = $this->calculerHeureFin($heureDebutMatch);
+        if ($heureDebutMatch < $horaire->getHeureDebut() || $heureFinMatch > $horaire->getHeureFin()) {
+            return 'hors_horaires';
+        }
+
+        // Règle 9 : l'heure de début doit être un créneau valide (Heure_Debut + n * 1h45)
+        $minutesDebut     = $this->heureEnMinutes($heureDebutMatch);
+        $minutesSiteDebut = $this->heureEnMinutes($horaire->getHeureDebut());
+        if (($minutesDebut - $minutesSiteDebut) % 105 !== 0) {
+            return 'creneau_invalide';
+        }
+
+        // Règle 10 : aucune fermeture (site ou globale) ne doit couvrir la date du match
+        $fermetures = array_merge(
+            $this->fermetureRepository->findBySiteId($terrain->getSiteId()),
+            $this->fermetureRepository->findGlobales()
+        );
+        foreach ($fermetures as $fermeture) {
+            if ($data['date_match'] >= $fermeture->getDateDebut() && $data['date_match'] <= $fermeture->getDateFin()) {
+                return 'site_ferme';
+            }
+        }
+
+        // Règle 11 : le créneau ne doit pas être déjà pris
         $dejaReserve = $this->reservationRepository->findByTerrainDateHeure(
             (int) $data['terrain_id'],
             $data['date_match'],
@@ -177,10 +213,15 @@ class ReservationService {
 
 
     // Calcule l'heure de fin en ajoutant 1h30 à l'heure de début.
-    // Exemple : "09:00:00" → "10:30:00"
     private function calculerHeureFin(string $heureDebut): string {
         $dt = new DateTime($heureDebut);
         $dt->modify('+1 hour +30 minutes');
         return $dt->format('H:i:s');
+    }
+
+    // Convertit "HH:MM:SS" en nombre de minutes depuis minuit.
+    private function heureEnMinutes(string $heure): int {
+        [$h, $m] = explode(':', $heure);
+        return (int) $h * 60 + (int) $m;
     }
 }

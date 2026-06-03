@@ -114,6 +114,22 @@ class ReservationController {
                 http_response_code(403);
                 echo json_encode(['erreur' => 'Un membre de catégorie S ne peut réserver que sur son propre site']);
             })(),
+            'horaire_introuvable'      => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Aucun horaire défini pour ce site et cette année']);
+            })(),
+            'hors_horaires'            => (function() use ($data) {
+                http_response_code(400);
+                echo json_encode(['erreur' => "L'heure demandée est en dehors des horaires d'ouverture du site"]);
+            })(),
+            'creneau_invalide'         => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Ce créneau ne correspond pas à un horaire valide (créneaux de 1h30 + 15 min de pause)']);
+            })(),
+            'site_ferme'               => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Le site est fermé à cette date']);
+            })(),
             'organisateur_introuvable' => (function() use ($data) {
                 http_response_code(404);
                 echo json_encode(['erreur' => "Membre {$data['organisateur_id']} introuvable"]);
