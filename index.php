@@ -71,7 +71,8 @@ $fermetureRepo           = new FermetureRepository($pdo);
 $fermetureService        = new FermetureService($fermetureRepo, $adminRepo);
 $fermetureController     = new FermetureController($fermetureService);
 $reservationService    = new ReservationService($reservationRepo, $terrainRepo, $membreRepo, $inscriptionRepo, $adminRepo, $horaireRepo, $fermetureRepo, $pdo);
-$inscriptionService    = new InscriptionService($inscriptionRepo, $reservationRepo, $membreRepo);
+$paiementRepo            = new PaiementRepository($pdo);
+$inscriptionService    = new InscriptionService($inscriptionRepo, $reservationRepo, $membreRepo, $paiementRepo, $pdo);
 $reservationController = new ReservationController($reservationService);
 $inscriptionController = new InscriptionController($inscriptionService);
 $siteController        = new SiteController($siteService);
@@ -82,7 +83,6 @@ $adminController         = new AdministrateurController($adminService);
 $penaliteRepo            = new PenaliteRepository($pdo);
 $penaliteService         = new PenaliteService($penaliteRepo, $membreRepo, $adminRepo);
 $penaliteController      = new PenaliteController($penaliteService);
-$paiementRepo            = new PaiementRepository($pdo);
 $paiementService         = new PaiementService($paiementRepo, $inscriptionRepo, $adminRepo);
 $paiementController      = new PaiementController($paiementService);
 $statsService            = new StatsService($pdo);
@@ -138,7 +138,11 @@ if ($method === 'GET' && $uri === '/sites') {
 } elseif ($method === 'GET' && preg_match('#^/api/reservations/(\d+)/inscriptions$#', $uri, $matches)) {
     $inscriptionController->getByReservation((int) $matches[1]);
 
-// POST /api/reservations/{id}/inscriptions → ajoute un joueur à la réservation
+// POST /api/reservations/{id}/rejoindre → rejoindre un match public (inscription + paiement simultanés)
+} elseif ($method === 'POST' && preg_match('#^/api/reservations/(\d+)/rejoindre$#', $uri, $matches)) {
+    $inscriptionController->rejoindre((int) $matches[1]);
+
+// POST /api/reservations/{id}/inscriptions → ajoute un joueur à la réservation (match privé)
 } elseif ($method === 'POST' && preg_match('#^/api/reservations/(\d+)/inscriptions$#', $uri, $matches)) {
     $inscriptionController->addJoueur((int) $matches[1]);
 

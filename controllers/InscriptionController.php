@@ -66,6 +66,58 @@ class InscriptionController {
     }
 
 
+    // POST /api/reservations/{id}/rejoindre → rejoindre un match public (inscription + paiement simultanés)
+    public function rejoindre(int $reservationId): void {
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (empty($data['membre_id'])) {
+            header('Content-Type: application/json');
+            http_response_code(400);
+            echo json_encode(['erreur' => 'Le champ "membre_id" est obligatoire']);
+            return;
+        }
+
+        $result = $this->inscriptionService->rejoindreMatchPublic($reservationId, (int) $data['membre_id'], $data);
+
+        header('Content-Type: application/json');
+
+        match ($result) {
+            'reservation_introuvable' => (function() use ($reservationId) {
+                http_response_code(404);
+                echo json_encode(['erreur' => "Réservation $reservationId introuvable"]);
+            })(),
+            'match_non_public'        => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Cette réservation n\'est pas un match public']);
+            })(),
+            'membre_introuvable'      => (function() use ($data) {
+                http_response_code(404);
+                echo json_encode(['erreur' => "Membre {$data['membre_id']} introuvable"]);
+            })(),
+            'reservation_complete'    => (function() {
+                http_response_code(409);
+                echo json_encode(['erreur' => 'Ce match est déjà complet (4 joueurs)']);
+            })(),
+            'deja_inscrit'            => (function() use ($data) {
+                http_response_code(409);
+                echo json_encode(['erreur' => "Le membre {$data['membre_id']} est déjà inscrit"]);
+            })(),
+            'montant_invalide'        => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Le montant doit être exactement 15.00 €']);
+            })(),
+            'methode_invalide'        => (function() {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'Méthode invalide. Valeurs acceptées : CARTE, VIREMENT, ESPECES, MOBILE']);
+            })(),
+            default                   => (function() use ($result) {
+                http_response_code(201);
+                echo json_encode(['message' => 'Inscription et paiement enregistrés avec succès', 'inscription_id' => $result], JSON_UNESCAPED_UNICODE);
+            })(),
+        };
+    }
+
+
     // DELETE /api/reservations/{id}/inscriptions/{membreId} → retire un joueur de la réservation
     public function removeJoueur(int $reservationId, int $membreId): void {
         $supprime = $this->inscriptionService->removeJoueur($reservationId, $membreId);

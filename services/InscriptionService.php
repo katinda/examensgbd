@@ -3,6 +3,8 @@
 require_once __DIR__ . '/../repositories/InscriptionRepository.php';
 require_once __DIR__ . '/../repositories/ReservationRepository.php';
 require_once __DIR__ . '/../repositories/MembreRepository.php';
+require_once __DIR__ . '/../repositories/PaiementRepository.php';
+require_once __DIR__ . '/../models/Paiement.php';
 
 // Le service contient la logique métier des inscriptions.
 // Il fait le lien entre le controller et les repositories.
@@ -13,10 +15,15 @@ require_once __DIR__ . '/../repositories/MembreRepository.php';
 
 class InscriptionService {
 
+    private const MONTANT_PART     = 15.00;
+    private const METHODES_VALIDES = ['CARTE', 'VIREMENT', 'ESPECES', 'MOBILE'];
+
     public function __construct(
         private InscriptionRepository $inscriptionRepository,
         private ReservationRepository $reservationRepository,
-        private MembreRepository      $membreRepository
+        private MembreRepository      $membreRepository,
+        private PaiementRepository    $paiementRepository,
+        private PDO                   $pdo
     ) {}
 
 
@@ -84,6 +91,54 @@ class InscriptionService {
 
         $inscription = new Inscription(null, $reservationId, $membreId, false);
         return $this->inscriptionRepository->insert($inscription);
+    }
+
+
+    // Rejoindre un match PUBLIC : inscription + paiement simultanés en transaction.
+    // Un joueur ne peut rejoindre un match public qu'en payant immédiatement (premier payé = premier servi).
+    //
+    // Erreurs possibles :
+    //   'reservation_introuvable' → la réservation n'existe pas → 404
+    //   'match_non_public'        → le match n'est pas PUBLIC → 400
+    //   'membre_introuvable'      → le membre n'existe pas → 404
+    //   'reservation_complete'    → déjà 4 joueurs → 409
+    //   'deja_inscrit'            → déjà inscrit → 409
+    //   'montant_invalide'        → montant ≠ 15.00 → 400
+    //   'methode_invalide'        → méthode inconnue → 400
+    public function rejoindreMatchPublic(int $reservationId, int $membreId, array $paiementData): int|string {
+        $reservation = $this->reservationRepository->findById($reservationId);
+        if ($reservation === null) return 'reservation_introuvable';
+
+        if ($reservation->getType() !== 'PUBLIC') return 'match_non_public';
+
+        $membre = $this->membreRepository->findById($membreId);
+        if ($membre === null || !$membre->isEstActif()) return 'membre_introuvable';
+
+        if ($this->inscriptionRepository->countByReservation($reservationId) >= 4) return 'reservation_complete';
+
+        if ($this->inscriptionRepository->findByReservationAndMembre($reservationId, $membreId) !== null) return 'deja_inscrit';
+
+        $montant = isset($paiementData['montant']) ? (float) $paiementData['montant'] : null;
+        if ($montant === null || $montant !== self::MONTANT_PART) return 'montant_invalide';
+
+        $methode = $paiementData['methode'] ?? null;
+        if ($methode !== null && !in_array($methode, self::METHODES_VALIDES, true)) return 'methode_invalide';
+
+        // Transaction : inscription + paiement en une seule opération atomique
+        $this->pdo->beginTransaction();
+        try {
+            $inscription   = new Inscription(null, $reservationId, $membreId, false);
+            $inscriptionId = $this->inscriptionRepository->insert($inscription);
+
+            $paiement = new Paiement(null, $inscriptionId, self::MONTANT_PART, null, $methode);
+            $this->paiementRepository->insert($paiement);
+
+            $this->pdo->commit();
+            return $inscriptionId;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
 
