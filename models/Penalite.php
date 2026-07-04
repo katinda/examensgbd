@@ -72,4 +72,12 @@ class Penalite {
 
     public function getDateCreation(): ?string { return $this->dateCreation; }
     public function setDateCreation(?string $dateCreation): void { $this->dateCreation = $dateCreation; }
+
+
+    // Une pénalité est active tant qu'elle n'a pas été levée et que la date du jour
+    // se situe dans sa fenêtre [Date_Debut, Date_Fin].
+    public function isActive(): bool {
+        $aujourdhui = date('Y-m-d');
+        return !$this->levee && $aujourdhui >= $this->dateDebut && $aujourdhui <= $this->dateFin;
+    }
 }

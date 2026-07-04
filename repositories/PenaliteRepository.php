@@ -24,9 +24,24 @@ class PenaliteRepository {
         return array_map(fn($row) => $this->hydrateOne($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
+    // "Active" = non levée ET date du jour dans [Date_Debut, Date_Fin] (voir Penalite::isActive()).
+    // Le WHERE Levee = 0 est un pré-filtre SQL ; la fenêtre de dates est vérifiée en PHP
+    // pour rester portable entre MySQL (prod) et SQLite (tests), comme pour les Fermetures.
     public function findActives(): array {
         $stmt = $this->pdo->query("SELECT * FROM Penalites WHERE Levee = 0");
-        return array_map(fn($row) => $this->hydrateOne($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
+        $penalites = array_map(fn($row) => $this->hydrateOne($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
+        return array_values(array_filter($penalites, fn(Penalite $p) => $p->isActive()));
+    }
+
+
+    // Vrai si le membre a au moins une pénalité active (non levée, dans sa fenêtre de dates).
+    public function hasActivePenalite(int $membreId): bool {
+        foreach ($this->findByMembreId($membreId) as $penalite) {
+            if ($penalite->isActive()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function insert(Penalite $penalite): int {

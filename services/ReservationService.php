@@ -7,6 +7,7 @@ require_once __DIR__ . '/../repositories/InscriptionRepository.php';
 require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 require_once __DIR__ . '/../repositories/HoraireSiteRepository.php';
 require_once __DIR__ . '/../repositories/FermetureRepository.php';
+require_once __DIR__ . '/../repositories/PenaliteRepository.php';
 
 // Le service contient la logique métier des réservations.
 // Version minimale : vérifie terrain + organisateur, calcule Heure_Fin, insère.
@@ -22,6 +23,7 @@ class ReservationService {
         private AdministrateurRepository $adminRepository,
         private HoraireSiteRepository   $horaireRepository,
         private FermetureRepository     $fermetureRepository,
+        private PenaliteRepository      $penaliteRepository,
         private PDO                      $pdo
     ) {}
 
@@ -91,6 +93,8 @@ class ReservationService {
     //   'terrain_introuvable'      → le terrain n'existe pas → 404
     //   'terrain_inactif'          → le terrain est fermé → 400
     //   'organisateur_introuvable' → le membre n'existe pas → 404
+    //   'penalite_active'          → l'organisateur a une pénalité en cours → 403
+    //   'solde_du'                 → l'organisateur a un solde impayé (match FORFAIT) → 402
     //   'date_passee'              → la date du match est dans le passé → 400
     //   'trop_tot'                 → trop tôt pour réserver (G:21j, S:14j, L:5j) → 400
     //   'site_non_autorise'        → membre S essaie de réserver sur un autre site → 403
@@ -115,14 +119,25 @@ class ReservationService {
             return 'organisateur_introuvable';
         }
 
-        // Règle 4 : la date du match ne doit pas être dans le passé
+        // Règle 4 : l'organisateur ne doit pas avoir de pénalité active (Levee=0, aujourd'hui dans sa fenêtre)
+        if ($this->penaliteRepository->hasActivePenalite((int) $data['organisateur_id'])) {
+            return 'penalite_active';
+        }
+
+        // Règle 5 : l'organisateur ne doit pas avoir de solde dû (un match public qu'il a
+        // organisé s'est joué incomplet et le déficit n'a jamais été recouvré)
+        if ($this->reservationRepository->hasSoldeDu((int) $data['organisateur_id'])) {
+            return 'solde_du';
+        }
+
+        // Règle 6 : la date du match ne doit pas être dans le passé
         $aujourdhui = new DateTime('today');
         $dateMatch  = new DateTime($data['date_match']);
         if ($dateMatch <= $aujourdhui) {
             return 'date_passee';
         }
 
-        // Règle 5 : vérifier le délai de réservation selon la catégorie du membre
+        // Règle 7 : vérifier le délai de réservation selon la catégorie du membre
         $delaiMax = match($membre->getCategorie()) {
             'G' => 21,
             'S' => 14,
@@ -134,33 +149,33 @@ class ReservationService {
             return 'trop_tot';
         }
 
-        // Règle 6 : un membre S ne peut réserver que sur son propre site
+        // Règle 8 : un membre S ne peut réserver que sur son propre site
         if ($membre->getCategorie() === 'S' && $membre->getSiteId() !== $terrain->getSiteId()) {
             return 'site_non_autorise';
         }
 
-        // Règle 7 : un horaire doit exister pour ce site et cette année
+        // Règle 9 : un horaire doit exister pour ce site et cette année
         $annee   = (int) date('Y', strtotime($data['date_match']));
         $horaire = $this->horaireRepository->findBySiteAndAnnee($terrain->getSiteId(), $annee);
         if ($horaire === null) {
             return 'horaire_introuvable';
         }
 
-        // Règle 8 : l'heure de début et de fin doivent être dans les horaires du site
+        // Règle 10 : l'heure de début et de fin doivent être dans les horaires du site
         $heureDebutMatch = $data['heure_debut'];
         $heureFinMatch   = $this->calculerHeureFin($heureDebutMatch);
         if ($heureDebutMatch < $horaire->getHeureDebut() || $heureFinMatch > $horaire->getHeureFin()) {
             return 'hors_horaires';
         }
 
-        // Règle 9 : l'heure de début doit être un créneau valide (Heure_Debut + n * 1h45)
+        // Règle 11 : l'heure de début doit être un créneau valide (Heure_Debut + n * 1h45)
         $minutesDebut     = $this->heureEnMinutes($heureDebutMatch);
         $minutesSiteDebut = $this->heureEnMinutes($horaire->getHeureDebut());
         if (($minutesDebut - $minutesSiteDebut) % 105 !== 0) {
             return 'creneau_invalide';
         }
 
-        // Règle 10 : aucune fermeture (site ou globale) ne doit couvrir la date du match
+        // Règle 12 : aucune fermeture (site ou globale) ne doit couvrir la date du match
         $fermetures = array_merge(
             $this->fermetureRepository->findBySiteId($terrain->getSiteId()),
             $this->fermetureRepository->findGlobales()
@@ -171,7 +186,7 @@ class ReservationService {
             }
         }
 
-        // Règle 11 : le créneau ne doit pas être déjà pris
+        // Règle 13 : le créneau ne doit pas être déjà pris
         $dejaReserve = $this->reservationRepository->findByTerrainDateHeure(
             (int) $data['terrain_id'],
             $data['date_match'],

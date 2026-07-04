@@ -30,12 +30,26 @@ class PenaliteRepositoryTest extends TestCase {
             )
         ");
 
-        $this->pdo->exec("
+        // Fenêtres calculées par rapport à aujourd'hui, pour ne pas dépendre d'une date figée
+        $debutActive   = (new DateTime('-3 days'))->format('Y-m-d');
+        $finActive     = (new DateTime('+4 days'))->format('Y-m-d');
+        $debutLevee    = (new DateTime('-10 days'))->format('Y-m-d');
+        $finLevee      = (new DateTime('-3 days'))->format('Y-m-d');
+        $debutExpiree  = (new DateTime('-30 days'))->format('Y-m-d');
+        $finExpiree    = (new DateTime('-23 days'))->format('Y-m-d');
+
+        $stmt = $this->pdo->prepare("
             INSERT INTO Penalites (Membre_ID, Reservation_ID, Date_Debut, Date_Fin, Cause, Levee)
             VALUES
-                (1, 1, '2026-05-01', '2026-05-15', 'PRIVATE_INCOMPLETE', 0),
-                (2, NULL, '2026-06-01', '2026-06-07', 'OTHER', 1)
+                (1, 1,    :debutActive,  :finActive,  'PRIVATE_INCOMPLETE', 0),
+                (2, NULL, :debutLevee,   :finLevee,   'OTHER',              1),
+                (3, NULL, :debutExpiree, :finExpiree, 'PAYMENT_MISSING',    0)
         ");
+        $stmt->execute([
+            ':debutActive'  => $debutActive,  ':finActive'  => $finActive,
+            ':debutLevee'   => $debutLevee,   ':finLevee'   => $finLevee,
+            ':debutExpiree' => $debutExpiree, ':finExpiree' => $finExpiree,
+        ]);
 
         $this->repository = new PenaliteRepository($this->pdo);
     }
@@ -44,7 +58,7 @@ class PenaliteRepositoryTest extends TestCase {
     // Vérifie que findAll() retourne bien toutes les pénalités
     public function testFindAllRetourneToutesLesPenalites(): void {
         $penalites = $this->repository->findAll();
-        $this->assertCount(2, $penalites, "findAll() doit retourner 2 pénalités");
+        $this->assertCount(3, $penalites, "findAll() doit retourner 3 pénalités");
     }
 
 
@@ -72,11 +86,37 @@ class PenaliteRepositoryTest extends TestCase {
     }
 
 
-    // Vérifie que findActives() retourne uniquement les pénalités non levées
-    public function testFindActivesRetourneLespenalitesNonLevees(): void {
+    // Vérifie que findActives() ne retourne que la pénalité non levée ET dans sa fenêtre de dates
+    // (le membre 3 est non levé mais sa fenêtre est expirée : il ne doit pas apparaître)
+    public function testFindActivesRetourneLespenalitesNonLeveesEtDansLaFenetre(): void {
         $penalites = $this->repository->findActives();
-        $this->assertCount(1, $penalites, "findActives() doit retourner 1 pénalité non levée");
+        $this->assertCount(1, $penalites, "findActives() doit retourner 1 pénalité active");
+        $this->assertEquals(1, $penalites[0]->getMembreId());
         $this->assertFalse($penalites[0]->isLevee());
+    }
+
+
+    // Vérifie que hasActivePenalite() retourne true pour un membre avec une pénalité en cours
+    public function testHasActivePenaliteRetourneTrueSiActive(): void {
+        $this->assertTrue($this->repository->hasActivePenalite(1));
+    }
+
+
+    // Vérifie que hasActivePenalite() retourne false pour un membre dont la pénalité est levée
+    public function testHasActivePenaliteRetourneFalseSiLevee(): void {
+        $this->assertFalse($this->repository->hasActivePenalite(2));
+    }
+
+
+    // Vérifie que hasActivePenalite() retourne false pour un membre dont la fenêtre est expirée
+    public function testHasActivePenaliteRetourneFalseSiExpiree(): void {
+        $this->assertFalse($this->repository->hasActivePenalite(3));
+    }
+
+
+    // Vérifie que hasActivePenalite() retourne false pour un membre sans aucune pénalité
+    public function testHasActivePenaliteRetourneFalseSiAucunePenalite(): void {
+        $this->assertFalse($this->repository->hasActivePenalite(999));
     }
 
 

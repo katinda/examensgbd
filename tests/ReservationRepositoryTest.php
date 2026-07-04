@@ -43,6 +43,24 @@ class ReservationRepositoryTest extends TestCase {
                 (1, 2, '2026-05-10', '14:00:00', '15:30:00', 'PUBLIC', 'EN_COURS', 60.00)
         ");
 
+        $this->pdo->exec("
+            CREATE TABLE Inscriptions (
+                Inscription_ID   INTEGER PRIMARY KEY AUTOINCREMENT,
+                Reservation_ID   INTEGER NOT NULL,
+                Membre_ID        INTEGER NOT NULL,
+                Est_Organisateur INTEGER NOT NULL DEFAULT 0
+            )
+        ");
+
+        $this->pdo->exec("
+            CREATE TABLE Paiements (
+                Paiement_ID    INTEGER PRIMARY KEY AUTOINCREMENT,
+                Inscription_ID INTEGER NOT NULL,
+                Montant        REAL NOT NULL,
+                Est_Annule     INTEGER NOT NULL DEFAULT 0
+            )
+        ");
+
         $this->repository = new ReservationRepository($this->pdo);
     }
 
@@ -126,5 +144,45 @@ class ReservationRepositoryTest extends TestCase {
         $modifie = $this->repository->findById(1);
         $this->assertEquals('TERMINEE', $modifie->getEtat());
         $this->assertEquals(45.00, $modifie->getPrixTotal());
+    }
+
+
+    // ─── Solde dû (matchs FORFAIT) ───────────────────────────────────────────
+
+    // Insère une réservation FORFAIT pour un organisateur, avec un nombre de joueurs payés donné
+    private function creerMatchForfait(int $organisateurId, int $nbJoueursPayes): void {
+        $this->pdo->exec("
+            INSERT INTO Reservations (Terrain_ID, Organisateur_ID, Date_Match, Heure_Debut, Heure_Fin, Type, Etat, Prix_Total)
+            VALUES (1, $organisateurId, '2026-04-01', '09:00:00', '10:30:00', 'PUBLIC', 'FORFAIT', 60.00)
+        ");
+        $reservationId = (int) $this->pdo->lastInsertId();
+
+        for ($i = 1; $i <= $nbJoueursPayes; $i++) {
+            $this->pdo->exec("INSERT INTO Inscriptions (Reservation_ID, Membre_ID) VALUES ($reservationId, $i)");
+            $inscriptionId = (int) $this->pdo->lastInsertId();
+            $this->pdo->exec("INSERT INTO Paiements (Inscription_ID, Montant, Est_Annule) VALUES ($inscriptionId, 15.00, 0)");
+        }
+    }
+
+    // Match FORFAIT avec seulement 2 joueurs payés sur 4 → déficit de 30€ → solde dû
+    public function testHasSoldeDuRetourneTrueSiDeficit(): void {
+        $this->creerMatchForfait(organisateurId: 10, nbJoueursPayes: 2);
+        $this->assertTrue($this->repository->hasSoldeDu(10));
+    }
+
+    // Match FORFAIT mais les 4 joueurs ont finalement tous payé → déficit nul → pas de solde dû
+    public function testHasSoldeDuRetourneFalseSiDeficitNul(): void {
+        $this->creerMatchForfait(organisateurId: 11, nbJoueursPayes: 4);
+        $this->assertFalse($this->repository->hasSoldeDu(11));
+    }
+
+    // Membre organisateur d'un match encore EN_COURS (pas FORFAIT) → pas de solde dû
+    public function testHasSoldeDuRetourneFalseSiPasForfait(): void {
+        $this->assertFalse($this->repository->hasSoldeDu(1));
+    }
+
+    // Membre sans aucune réservation → pas de solde dû
+    public function testHasSoldeDuRetourneFalseSiAucuneReservation(): void {
+        $this->assertFalse($this->repository->hasSoldeDu(999));
     }
 }

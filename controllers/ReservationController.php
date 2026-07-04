@@ -134,6 +134,14 @@ class ReservationController {
                 http_response_code(404);
                 echo json_encode(['erreur' => "Membre {$data['organisateur_id']} introuvable"]);
             })(),
+            'penalite_active'          => (function() {
+                http_response_code(403);
+                echo json_encode(['erreur' => "L'organisateur a une pénalité en cours et ne peut pas faire de réservation"]);
+            })(),
+            'solde_du'                 => (function() {
+                http_response_code(402);
+                echo json_encode(['erreur' => "L'organisateur a un solde impayé et ne peut pas faire de réservation"]);
+            })(),
             'creneau_pris'             => (function() use ($data) {
                 http_response_code(409);
                 echo json_encode(['erreur' => "Ce créneau est déjà réservé sur ce terrain"]);

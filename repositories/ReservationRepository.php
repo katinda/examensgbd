@@ -118,6 +118,30 @@ class ReservationRepository {
     }
 
 
+    // Vrai si le membre a un solde dû : un match public qu'il a organisé s'est joué incomplet
+    // (Etat = FORFAIT) et le déficit (Prix_Total - paiements valides reçus) n'a pas encore été
+    // recouvré. Cette formule doit rester identique à celle du trigger SQL
+    // trg_agregation_solde_du (triggers/solde_du_paiement/trigger_solde_du_paiement.sql),
+    // qui recouvre ce même solde au prochain paiement de l'organisateur.
+    public function hasSoldeDu(int $membreId): bool {
+        $stmt = $this->pdo->prepare("
+            SELECT COALESCE(SUM(r.Prix_Total - COALESCE(paye.total, 0)), 0)
+            FROM Reservations r
+            LEFT JOIN (
+                SELECT i.Reservation_ID, SUM(p.Montant) AS total
+                FROM Inscriptions i
+                JOIN Paiements p ON p.Inscription_ID = i.Inscription_ID
+                WHERE p.Est_Annule = 0
+                GROUP BY i.Reservation_ID
+            ) paye ON paye.Reservation_ID = r.Reservation_ID
+            WHERE r.Organisateur_ID = :membreId
+              AND r.Etat = 'FORFAIT'
+        ");
+        $stmt->execute([':membreId' => $membreId]);
+        return (float) $stmt->fetchColumn() > 0;
+    }
+
+
     // Met à jour une réservation existante (etat, prixTotal, etc.)
     public function update(Reservation $reservation): void {
         $stmt = $this->pdo->prepare("

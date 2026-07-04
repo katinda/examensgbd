@@ -12,9 +12,11 @@ require_once __DIR__ . '/../repositories/InscriptionRepository.php';
 require_once __DIR__ . '/../repositories/AdministrateurRepository.php';
 require_once __DIR__ . '/../repositories/HoraireSiteRepository.php';
 require_once __DIR__ . '/../repositories/FermetureRepository.php';
+require_once __DIR__ . '/../repositories/PenaliteRepository.php';
 require_once __DIR__ . '/../models/Administrateur.php';
 require_once __DIR__ . '/../models/HoraireSite.php';
 require_once __DIR__ . '/../models/Fermeture.php';
+require_once __DIR__ . '/../models/Penalite.php';
 require_once __DIR__ . '/../services/ReservationService.php';
 
 // On teste la logique métier du ReservationService.
@@ -62,6 +64,13 @@ class ReservationServiceTest extends TestCase {
         return $mock;
     }
 
+    // Aucune pénalité active par défaut
+    private function creerPenaliteRepo(bool $active = false): PenaliteRepository {
+        $mock = $this->createStub(PenaliteRepository::class);
+        $mock->method('hasActivePenalite')->willReturn($active);
+        return $mock;
+    }
+
     // PDO SQLite en mémoire — léger, supporte les transactions, utilisé par createReservation()
     private function creerPdo(): PDO {
         $pdo = new PDO('sqlite::memory:');
@@ -75,7 +84,7 @@ class ReservationServiceTest extends TestCase {
         $mockRepo = $this->createStub(ReservationRepository::class);
         $mockRepo->method('findById')->willReturn($this->creerReservation(1));
 
-        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $result  = $service->getReservationById(1);
 
         $this->assertNotNull($result);
@@ -91,7 +100,7 @@ class ReservationServiceTest extends TestCase {
             $this->creerReservation(2),
         ]);
 
-        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertCount(2, $service->getReservationsByMembre(1));
     }
 
@@ -103,7 +112,7 @@ class ReservationServiceTest extends TestCase {
             $this->creerReservation(1),
         ]);
 
-        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $this->createStub(TerrainRepository::class), $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertCount(1, $service->getReservationsByTerrainAndDate(1, '2026-05-10'));
     }
 
@@ -113,7 +122,7 @@ class ReservationServiceTest extends TestCase {
         $mockTerrain = $this->createStub(TerrainRepository::class);
         $mockTerrain->method('findById')->willReturn(null);
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertEquals('terrain_introuvable', $service->createReservation($this->creerData()));
     }
 
@@ -123,7 +132,7 @@ class ReservationServiceTest extends TestCase {
         $mockTerrain = $this->createStub(TerrainRepository::class);
         $mockTerrain->method('findById')->willReturn($this->creerTerrain(1, false));
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertEquals('terrain_inactif', $service->createReservation($this->creerData()));
     }
 
@@ -135,8 +144,34 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn(null);
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertEquals('organisateur_introuvable', $service->createReservation($this->creerData()));
+    }
+
+
+    // Vérifie que createReservation() retourne 'penalite_active' si l'organisateur a une pénalité en cours
+    public function testCreateReservationRetournePenaliteActive(): void {
+        $mockTerrain = $this->createStub(TerrainRepository::class);
+        $mockTerrain->method('findById')->willReturn($this->creerTerrain(1, true));
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockMembre->method('findById')->willReturn($this->creerMembre(1));
+
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(true), $this->creerPdo());
+        $this->assertEquals('penalite_active', $service->createReservation($this->creerData()));
+    }
+
+
+    // Vérifie que createReservation() retourne 'solde_du' si l'organisateur a un solde impayé
+    public function testCreateReservationRetourneSoldeDu(): void {
+        $mockRepo = $this->createStub(ReservationRepository::class);
+        $mockRepo->method('hasSoldeDu')->willReturn(true);
+        $mockTerrain = $this->createStub(TerrainRepository::class);
+        $mockTerrain->method('findById')->willReturn($this->creerTerrain(1, true));
+        $mockMembre = $this->createStub(MembreRepository::class);
+        $mockMembre->method('findById')->willReturn($this->creerMembre(1));
+
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
+        $this->assertEquals('solde_du', $service->createReservation($this->creerData()));
     }
 
 
@@ -149,7 +184,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertEquals('creneau_pris', $service->createReservation($this->creerData()));
     }
 
@@ -164,7 +199,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertEquals(5, $service->createReservation($this->creerData()));
     }
 
@@ -184,7 +219,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $service->createReservation($this->creerData(['heure_debut' => '08:00:00']));
 
         $this->assertNotNull($reservationInseree);
@@ -212,7 +247,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $mockHoraire, $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $mockHoraire, $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $result  = $service->createReservation($this->creerData());
         $this->assertEquals('horaire_introuvable', $result);
     }
@@ -226,7 +261,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $mockHoraire, $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $mockHoraire, $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         // 08:00 < 10:00 (Heure_Debut du site) → hors_horaires
         $result = $service->createReservation($this->creerData(['heure_debut' => '08:00:00']));
         $this->assertEquals('hors_horaires', $result);
@@ -239,7 +274,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         // 08:30 → 30 min après 08:00 → 30 % 105 ≠ 0 → creneau_invalide
         $result = $service->createReservation($this->creerData(['heure_debut' => '08:30:00']));
         $this->assertEquals('creneau_invalide', $result);
@@ -258,7 +293,7 @@ class ReservationServiceTest extends TestCase {
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($this->creerMembre(1));
 
-        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $mockFermeture, $this->creerPdo());
+        $service = new ReservationService($this->createStub(ReservationRepository::class), $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $mockFermeture, $this->creerPenaliteRepo(), $this->creerPdo());
         $result = $service->createReservation($this->creerData());
         $this->assertEquals('site_ferme', $result);
     }
@@ -272,7 +307,7 @@ class ReservationServiceTest extends TestCase {
         $mockTerrain->method('findById')->willReturn($terrain);
         $mockMembre = $this->createStub(MembreRepository::class);
         $mockMembre->method('findById')->willReturn($membre);
-        return new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        return new ReservationService($mockRepo, $mockTerrain, $mockMembre, $this->createStub(InscriptionRepository::class), $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
     }
 
     // Date dans le passé → date_passee
@@ -325,7 +360,7 @@ class ReservationServiceTest extends TestCase {
         $pdo->exec('CREATE TABLE Reservations (Reservation_ID INTEGER PRIMARY KEY AUTOINCREMENT, Terrain_ID INT, Organisateur_ID INT, Date_Match TEXT, Heure_Debut TEXT, Heure_Fin TEXT, Type TEXT, Etat TEXT DEFAULT "EN_COURS", Prix_Total REAL DEFAULT 60.0, Date_Creation TEXT, LastUpdate TEXT)');
         $pdo->exec('CREATE TABLE Inscriptions (Inscription_ID INTEGER PRIMARY KEY AUTOINCREMENT, Reservation_ID INT, Membre_ID INT, Est_Organisateur INT DEFAULT 0)');
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $mockInscription, $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $pdo);
+        $service = new ReservationService($mockRepo, $mockTerrain, $mockMembre, $mockInscription, $this->createStub(AdministrateurRepository::class), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $pdo);
         $result  = $service->createReservation($this->creerData(['date_match' => (new DateTime('+3 days'))->format('Y-m-d')]));
         $this->assertEquals(1, $result);
     }
@@ -339,7 +374,7 @@ class ReservationServiceTest extends TestCase {
         ]);
         $mockTerrain = $this->createStub(TerrainRepository::class);
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerAdminRepo('GLOBAL'), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerAdminRepo('GLOBAL'), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $this->assertCount(2, $service->getReservationsByMembre(1, 1));
     }
 
@@ -356,7 +391,7 @@ class ReservationServiceTest extends TestCase {
             [2, $this->creerTerrain(2, true, 2)], // terrain du site 2
         ]);
 
-        $service = new ReservationService($mockRepo, $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerAdminRepo('SITE', 1), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPdo());
+        $service = new ReservationService($mockRepo, $mockTerrain, $this->createStub(MembreRepository::class), $this->createStub(InscriptionRepository::class), $this->creerAdminRepo('SITE', 1), $this->creerHoraireRepo(), $this->creerFermetureRepo(), $this->creerPenaliteRepo(), $this->creerPdo());
         $result  = $service->getReservationsByMembre(1, 1);
 
         $this->assertCount(1, $result);
