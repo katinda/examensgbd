@@ -36,6 +36,17 @@ class SiteControllerTest extends TestCase {
         $this->assertEquals('Site Test', $response[0]['nom']);
     }
 
+    // getAll?inactifs=1 → retourne les sites inactifs
+    public function testGetAllRetourneLesInactifsSiDemande(): void {
+        $_GET['inactifs'] = '1';
+        $stub = $this->createStub(SiteService::class);
+        $stub->method('getInactifsSites')->willReturn([$this->creerSite(2)]);
+
+        $response = $this->capturer(fn() => (new SiteController($stub))->getAll());
+
+        $this->assertCount(1, $response);
+    }
+
     public function testGetByIdRetourneLeSite(): void {
         $stub = $this->createStub(SiteService::class);
         $stub->method('getSiteById')->willReturn($this->creerSite(1));

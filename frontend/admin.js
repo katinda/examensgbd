@@ -178,19 +178,21 @@ function cacherErreur(id) {
 // ── SITES ────────────────────────────────────────────────────
 // Appelle GET /sites. Admin SITE → filtre sur son seul site.
 async function chargerSites(siteId = null) {
+    const inactifs = document.getElementById('filtre-sites-inactifs').checked;
     try {
-        const res = await fetch(`${API}/sites`);
+        const url = inactifs ? `${API}/sites?inactifs=1` : `${API}/sites`;
+        const res = await fetch(url);
         let sites = await res.json();
         if (siteId) sites = sites.filter(s => s.id === siteId);
-        afficherSites(sites);
+        afficherSites(sites, inactifs);
     } catch {
         afficherErreur('erreur-sites', 'Impossible de contacter le serveur.');
     }
 }
 
 // Injecte les sites dans le tableau HTML.
-// Attache aussi les listeners de suppression sur chaque bouton généré.
-function afficherSites(sites) {
+// Attache aussi les listeners de désactivation/réactivation sur chaque bouton généré.
+function afficherSites(sites, inactifs = false) {
     const tbody = document.getElementById('tbody-sites');
 
     if (!sites.length) {
@@ -198,7 +200,7 @@ function afficherSites(sites) {
         return;
     }
 
-    const peutSupprimer = adminConnecte?.type === 'GLOBAL';
+    const peutGerer = adminConnecte?.type === 'GLOBAL';
     tbody.innerHTML = sites.map(s => `
         <tr>
             <td>${s.id}</td>
@@ -206,8 +208,12 @@ function afficherSites(sites) {
             <td>${s.ville ?? '—'}</td>
             <td>${s.code_postal ?? '—'}</td>
             <td>
-                <button class="btn-modifier" data-site='${JSON.stringify(s)}'>Modifier</button>
-                ${peutSupprimer ? `<button class="btn-supprimer" data-id="${s.id}">Supprimer</button>` : ''}
+                ${!inactifs ? `<button class="btn-modifier" data-site='${JSON.stringify(s)}'>Modifier</button>` : ''}
+                ${peutGerer
+                    ? (inactifs
+                        ? `<button class="btn-reactiver" data-id="${s.id}">Réactiver</button>`
+                        : `<button class="btn-supprimer" data-id="${s.id}">Désactiver</button>`)
+                    : ''}
             </td>
         </tr>
     `).join('');
@@ -217,22 +223,48 @@ function afficherSites(sites) {
     });
 
     tbody.querySelectorAll('.btn-supprimer').forEach(btn => {
-        btn.addEventListener('click', () => supprimerSite(btn.dataset.id));
+        btn.addEventListener('click', () => desactiverSite(btn.dataset.id));
+    });
+
+    tbody.querySelectorAll('.btn-reactiver').forEach(btn => {
+        btn.addEventListener('click', () => reactiverSite(btn.dataset.id));
     });
 }
 
-// Appelle DELETE /sites/:id après confirmation, puis recharge la liste.
-async function supprimerSite(id) {
-    if (!confirm('Supprimer ce site ?')) return;
+// Appelle DELETE /sites/:id (soft delete côté backend) après confirmation, puis recharge la liste.
+async function desactiverSite(id) {
+    if (!confirm('Désactiver ce site ?')) return;
     try {
         const res = await fetch(`${API}/sites/${id}?admin_id=${adminConnecte.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error();
         cacherErreur('erreur-sites');
         chargerSites(siteIdAdmin());
     } catch {
-        afficherErreur('erreur-sites', 'Erreur lors de la suppression.');
+        afficherErreur('erreur-sites', 'Erreur lors de la désactivation.');
     }
 }
+
+// Appelle PUT /sites/:id avec est_actif: true, puis recharge la liste.
+async function reactiverSite(id) {
+    if (!confirm('Réactiver ce site ?')) return;
+    try {
+        const res = await fetch(`${API}/sites/${id}?admin_id=${adminConnecte.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ est_actif: true }),
+        });
+        if (!res.ok) throw new Error();
+        cacherErreur('erreur-sites');
+        chargerSites(siteIdAdmin());
+    } catch {
+        afficherErreur('erreur-sites', 'Erreur lors de la réactivation.');
+    }
+}
+
+// Recharge la liste quand la checkbox "Afficher les inactifs" change.
+document.getElementById('filtre-sites-inactifs').addEventListener('change', () => {
+    chargerSites(siteIdAdmin());
+});
 
 // Ouvre le formulaire de modification en pré-remplissant les données du site.
 function ouvrirFormModifierSite(site) {
@@ -807,7 +839,7 @@ function afficherReservations(reservations) {
     const tbody = document.getElementById('tbody-reservations');
 
     if (!reservations.length) {
-        tbody.innerHTML = '<tr><td colspan="7">Aucune réservation.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Aucune réservation.</td></tr>';
         return;
     }
 
@@ -819,6 +851,7 @@ function afficherReservations(reservations) {
             <td>${r.date_match}</td>
             <td>${r.heure_debut}</td>
             <td>${r.type}</td>
+            <td>${r.etat}</td>
             <td>
                 <button class="btn-joueurs" data-id="${r.id}">Joueurs</button>
                 <button class="btn-supprimer" data-id="${r.id}">Supprimer</button>
@@ -976,9 +1009,9 @@ function afficherPenalites(penalites) {
             <td>${p.cause}</td>
             <td>${p.date_debut}</td>
             <td>${p.date_fin}</td>
-            <td>${p.date_levee ? 'Oui' : 'Non'}</td>
+            <td>${p.levee ? 'Oui' : 'Non'}</td>
             <td>
-                ${!p.date_levee && peutLever ? `<button class="btn-lever" data-id="${p.id}">Lever</button>` : ''}
+                ${!p.levee && peutLever ? `<button class="btn-lever" data-id="${p.id}">Lever</button>` : ''}
                 <button class="btn-supprimer" data-id="${p.id}">Supprimer</button>
             </td>
         </tr>
@@ -1399,8 +1432,10 @@ document.getElementById('filtre-horaire-site').addEventListener('change', e => {
     chargerHoraires(e.target.value);
 });
 
-// Affiche le formulaire de création.
+// Affiche le formulaire de création et rafraîchit la liste des sites
+// (un site créé après le login ne serait sinon jamais proposé ici).
 document.getElementById('btn-nouvel-horaire').addEventListener('click', () => {
+    chargerSitesDansHoraires();
     document.getElementById('form-horaire').style.display = 'block';
 });
 
@@ -1621,8 +1656,10 @@ document.getElementById('filtre-fermetures-globales').addEventListener('change',
     chargerFermetures(filtresFermeturesActuels());
 });
 
-// Affiche le formulaire de création.
+// Affiche le formulaire de création et rafraîchit la liste des sites
+// (un site créé après le login ne serait sinon jamais proposé ici).
 document.getElementById('btn-nouvelle-fermeture').addEventListener('click', () => {
+    chargerSitesDansFermetures();
     document.getElementById('form-fermeture').style.display = 'block';
 });
 

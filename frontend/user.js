@@ -53,6 +53,7 @@ function connecterMembre(membre) {
     document.getElementById('membre-matricule').textContent = membre.matricule;
     document.getElementById('membre-categorie').textContent = membre.categorie;
     chargerMesReservations();
+    chargerMesMatchsJoueur();
     chargerMatchesPublics();
     chargerMesPenalites();
     chargerTerrainsDansForm();
@@ -91,11 +92,98 @@ function afficherMesReservations(reservations) {
             <td>${r.type}</td>
             <td>
                 <button class="btn-payer" data-reservation-id="${r.id}">Voir / Payer</button>
+                ${r.type === 'PRIVE' ? `
+                    <br>
+                    <input type="text" class="input-matricule-ajout" data-reservation-id="${r.id}" placeholder="Matricule joueur" style="width:120px">
+                    <button class="btn-ajouter-joueur" data-reservation-id="${r.id}">+ Ajouter joueur</button>
+                ` : ''}
             </td>
         </tr>
     `).join('');
 
     tbody.querySelectorAll('.btn-payer').forEach(btn => {
+        btn.addEventListener('click', () => voirPaiement(btn.dataset.reservationId));
+    });
+
+    tbody.querySelectorAll('.btn-ajouter-joueur').forEach(btn => {
+        btn.addEventListener('click', () => ajouterJoueur(btn.dataset.reservationId));
+    });
+}
+
+// Ajoute un joueur (par matricule) à un match privé dont le membre connecté est l'organisateur.
+// Appelle GET /api/membres/matricule/:matricule puis POST /api/reservations/:id/inscriptions.
+async function ajouterJoueur(reservationId) {
+    const input = document.querySelector(`.input-matricule-ajout[data-reservation-id="${reservationId}"]`);
+    const matricule = input.value.trim();
+    if (!matricule) return;
+
+    try {
+        const resMembre = await fetch(`${API}/api/membres/matricule/${encodeURIComponent(matricule)}`);
+        if (!resMembre.ok) {
+            afficherErreur('erreur-mes-reservations', `Membre ${matricule} introuvable.`);
+            return;
+        }
+        const membre = await resMembre.json();
+
+        const res = await fetch(`${API}/api/reservations/${reservationId}/inscriptions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ membre_id: membre.id }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            afficherErreur('erreur-mes-reservations', data.erreur ?? "Impossible d'ajouter ce joueur.");
+            return;
+        }
+
+        cacherErreur('erreur-mes-reservations');
+        chargerMesReservations();
+    } catch {
+        afficherErreur('erreur-mes-reservations', "Erreur lors de l'ajout du joueur.");
+    }
+}
+
+// ── MES MATCHS (EN TANT QUE JOUEUR) ──────────────────────────
+// Appelle GET /api/membres/:id/inscriptions : tous les matchs où le membre est inscrit,
+// organisateur ou non — contrairement à "Mes réservations" qui ne montre que les matchs
+// qu'il organise lui-même. Nécessaire pour qu'un joueur simplement ajouté par un
+// organisateur puisse retrouver son match et payer sa part.
+async function chargerMesMatchsJoueur() {
+    try {
+        const res = await fetch(`${API}/api/membres/${membreConnecte.id}/inscriptions`);
+        if (!res.ok) throw new Error();
+        const matchs = await res.json();
+        afficherMesMatchsJoueur(matchs);
+    } catch {
+        afficherErreur('erreur-mes-matchs-joueur', 'Impossible de charger vos matchs.');
+    }
+}
+
+// Injecte les matchs (organisateur ou joueur) dans le tableau, avec bouton Voir/Payer.
+function afficherMesMatchsJoueur(matchs) {
+    const tbody = document.getElementById('tbody-mes-matchs-joueur');
+
+    if (!matchs.length) {
+        tbody.innerHTML = '<tr><td colspan="7">Aucun match.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = matchs.map(m => `
+        <tr>
+            <td>${m.reservation_id}</td>
+            <td>${m.terrain_id}</td>
+            <td>${m.date_match}</td>
+            <td>${m.heure_debut}</td>
+            <td>${m.type}</td>
+            <td>${m.est_organisateur ? 'Oui' : 'Non'}</td>
+            <td>
+                <button class="btn-payer-joueur" data-reservation-id="${m.reservation_id}">Voir / Payer</button>
+            </td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.btn-payer-joueur').forEach(btn => {
         btn.addEventListener('click', () => voirPaiement(btn.dataset.reservationId));
     });
 }
@@ -190,20 +278,24 @@ function afficherMatchesPublics(matches) {
 }
 
 // Appelle POST /api/reservations/:id/inscriptions pour s'inscrire à un match public.
+// Rejoindre un match public exige de payer immédiatement (règle "premier payé = premier
+// servi") : on appelle /rejoindre (inscription + paiement en une transaction atomique),
+// pas le simple endpoint d'inscription qui laisserait la place réservée sans paiement.
 async function sInscrireMatch(reservationId) {
-    if (!confirm('Vous inscrire à ce match public ?')) return;
+    if (!confirm('Rejoindre ce match public et payer votre part (15€) maintenant ?')) return;
     try {
-        const res = await fetch(`${API}/api/reservations/${reservationId}/inscriptions`, {
+        const res = await fetch(`${API}/api/reservations/${reservationId}/rejoindre`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ membre_id: membreConnecte.id }),
+            body: JSON.stringify({ membre_id: membreConnecte.id, montant: 15.00 }),
         });
         if (!res.ok) throw new Error();
-        alert('Inscription réussie ! Pensez à payer votre part (15€).');
+        alert('Inscription et paiement effectués avec succès !');
         chargerMatchesPublics();
         chargerMesReservations();
+        chargerMesMatchsJoueur();
     } catch {
-        afficherErreur('erreur-matches-publics', 'Inscription impossible (déjà inscrit ou match complet).');
+        afficherErreur('erreur-matches-publics', 'Inscription impossible (déjà inscrit, match complet, ou montant invalide).');
     }
 }
 

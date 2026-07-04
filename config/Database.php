@@ -4,6 +4,12 @@
 // Au lieu de se connecter dans chaque fichier séparément,
 // on le fait une seule fois ici et on partage cette connexion partout.
 
+// PHP est en UTC par défaut, alors que le serveur MySQL utilise le fuseau du système
+// (Europe/Brussels). Sans ce réglage, les timestamps générés côté PHP (new DateTime(),
+// date()) sont décalés de 1h/2h par rapport à ceux générés côté MySQL (CURRENT_TIMESTAMP,
+// NOW()), ce qui peut faire apparaître une date d'annulation antérieure au paiement annulé.
+date_default_timezone_set('Europe/Brussels');
+
 class Database {
 
     // Ces informations correspondent à notre serveur MAMP local

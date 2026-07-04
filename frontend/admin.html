@@ -104,6 +104,13 @@
             <!-- Message d'erreur -->
             <p id="erreur-sites" style="display:none;color:red"></p>
 
+            <div>
+                <label>
+                    <input type="checkbox" id="filtre-sites-inactifs">
+                    Afficher les inactifs
+                </label>
+            </div>
+
             <!-- Liste des sites -->
             <table id="table-sites">
                 <thead>
@@ -326,11 +333,12 @@
                         <th>Date</th>
                         <th>Heure</th>
                         <th>Type</th>
+                        <th>Etat</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="tbody-reservations">
-                    <tr><td colspan="7">Chargement…</td></tr>
+                    <tr><td colspan="8">Chargement…</td></tr>
                 </tbody>
             </table>
         </section>

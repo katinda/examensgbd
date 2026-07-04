@@ -14,7 +14,14 @@ class SiteService {
     // Retourne tous les sites actifs.
     public function getAllSites(): array {
         $tous = $this->siteRepository->findAll();
-        return array_filter($tous, fn($site) => $site->isEstActif());
+        return array_values(array_filter($tous, fn($site) => $site->isEstActif()));
+    }
+
+
+    // Retourne tous les sites inactifs (désactivés par soft delete).
+    public function getInactifsSites(): array {
+        $tous = $this->siteRepository->findAll();
+        return array_values(array_filter($tous, fn($site) => !$site->isEstActif()));
     }
 
 
@@ -81,7 +88,7 @@ class SiteService {
     }
 
 
-    // Supprime un site. Seul un admin GLOBAL peut supprimer un site.
+    // Désactive un site (soft delete). Seul un admin GLOBAL peut désactiver un site.
     //
     // Retourne true, false (site inexistant), ou une string d'erreur.
     public function deleteSite(int $id, int $adminId): bool|string {
@@ -94,7 +101,8 @@ class SiteService {
 
         if ($site === null) return false;
 
-        $this->siteRepository->delete($id);
+        $site->setEstActif(false);
+        $this->siteRepository->update($site);
         return true;
     }
 }

@@ -166,6 +166,10 @@ if ($method === 'GET' && $uri === '/sites') {
 } elseif ($method === 'GET' && preg_match('#^/api/membres/(\d+)/reservations$#', $uri, $matches)) {
     $reservationController->getByMembre((int) $matches[1]);
 
+// GET /api/membres/{id}/inscriptions → retourne les matchs auxquels le membre est inscrit (organisateur ou joueur)
+} elseif ($method === 'GET' && preg_match('#^/api/membres/(\d+)/inscriptions$#', $uri, $matches)) {
+    $inscriptionController->getByMembre((int) $matches[1]);
+
 // GET /api/terrains/{id}/reservations?date=YYYY-MM-DD → retourne les réservations d'un terrain pour une date
 } elseif ($method === 'GET' && preg_match('#^/api/terrains/(\d+)/reservations$#', $uri, $matches)) {
     $reservationController->getByTerrainAndDate((int) $matches[1]);

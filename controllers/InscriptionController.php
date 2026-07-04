@@ -20,6 +20,17 @@ class InscriptionController {
     }
 
 
+    // GET /api/membres/{id}/inscriptions → retourne les matchs auxquels le membre est inscrit
+    // (organisateur ou simple joueur), pour qu'il puisse voir/payer sa part même s'il n'est
+    // pas l'organisateur.
+    public function getByMembre(int $membreId): void {
+        $inscriptions = $this->inscriptionService->getInscriptionsByMembre($membreId);
+
+        header('Content-Type: application/json');
+        echo json_encode($inscriptions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+
     // POST /api/reservations/{id}/inscriptions?demandeur_id={id} → ajoute un joueur à la réservation
     // Codes possibles : 201, 400, 403, 404, 409
     public function addJoueur(int $reservationId): void {

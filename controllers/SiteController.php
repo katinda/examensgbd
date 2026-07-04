@@ -11,9 +11,10 @@ class SiteController {
     public function __construct(private SiteService $siteService) {}
 
 
-    // GET /sites → retourne tous les sites actifs en JSON
+    // GET /sites, GET /sites?inactifs=1 → retourne tous les sites actifs (ou inactifs) en JSON
     public function getAll(): void {
-        $sites = $this->siteService->getAllSites();
+        $inactifs = isset($_GET['inactifs']) && $_GET['inactifs'] === '1';
+        $sites    = $inactifs ? $this->siteService->getInactifsSites() : $this->siteService->getAllSites();
 
         $data = array_map(fn($site) => [
             'id'            => $site->getSiteId(),
@@ -129,7 +130,7 @@ class SiteController {
     }
 
 
-    // DELETE /sites/{id}?admin_id={id} → supprime un site (GLOBAL uniquement)
+    // DELETE /sites/{id}?admin_id={id} → désactive un site en soft delete (GLOBAL uniquement)
     public function delete(int $id): void {
         $adminId = isset($_GET['admin_id']) ? (int) $_GET['admin_id'] : null;
 
@@ -161,6 +162,6 @@ class SiteController {
             return;
         }
 
-        echo json_encode(['message' => "Site $id supprimé avec succès"], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['message' => "Site $id désactivé avec succès"], JSON_UNESCAPED_UNICODE);
     }
 }

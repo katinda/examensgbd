@@ -47,6 +47,30 @@ class InscriptionService {
     }
 
 
+    // Retourne les matchs auxquels un membre est inscrit, qu'il soit organisateur ou simple
+    // joueur ajouté par quelqu'un d'autre — contrairement à ReservationService::getReservationsByMembre()
+    // qui ne retourne que les matchs où il est organisateur.
+    public function getInscriptionsByMembre(int $membreId): array {
+        $inscriptions = $this->inscriptionRepository->findByMembre($membreId);
+
+        return array_values(array_filter(array_map(function($i) {
+            $reservation = $this->reservationRepository->findById($i->getReservationId());
+            if ($reservation === null) {
+                return null;
+            }
+            return [
+                'inscription_id'  => $i->getInscriptionId(),
+                'reservation_id'  => $reservation->getReservationId(),
+                'terrain_id'      => $reservation->getTerrainId(),
+                'date_match'      => $reservation->getDateMatch(),
+                'heure_debut'     => $reservation->getHeureDebut(),
+                'type'            => $reservation->getType(),
+                'est_organisateur' => $i->isEstOrganisateur(),
+            ];
+        }, $inscriptions)));
+    }
+
+
     // Ajoute un joueur à une réservation.
     // Retourne l'ID de l'inscription créée, ou une string décrivant l'erreur.
     //

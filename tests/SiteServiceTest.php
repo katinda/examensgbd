@@ -182,4 +182,40 @@ class SiteServiceTest extends TestCase {
 
         $this->assertFalse($result);
     }
+
+    // Vérifie que deleteSite() fait un soft delete (Est_Actif=false + update()),
+    // et non une suppression physique (delete()).
+    public function testDeleteSiteDesactiveSansSupprimer(): void {
+        $siteMisAJour = null;
+
+        $mockRepo = $this->createStub(SiteRepository::class);
+        $mockRepo->method('findById')->willReturn($this->creerSite(1, 'Club Paris', true));
+        $mockRepo->method('update')->willReturnCallback(function(Site $s) use (&$siteMisAJour) {
+            $siteMisAJour = $s;
+        });
+
+        $service = new SiteService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $service->deleteSite(1, 1);
+
+        $this->assertNotNull($siteMisAJour, 'update() doit être appelé');
+        $this->assertFalse($siteMisAJour->isEstActif());
+    }
+
+
+    // ─── getInactifsSites ───────────────────────────────────────────────────
+
+    public function testGetInactifsSitesRetourneSeulementLesSitesInactifs(): void {
+        $mockRepo = $this->createStub(SiteRepository::class);
+        $mockRepo->method('findAll')->willReturn([
+            $this->creerSite(1, 'Club Paris', true),
+            $this->creerSite(2, 'Club Ferme', false),
+            $this->creerSite(3, 'Club Lyon',  true),
+        ]);
+
+        $service = new SiteService($mockRepo, $this->creerAdminRepo('GLOBAL'));
+        $result  = $service->getInactifsSites();
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('Club Ferme', $result[0]->getNom());
+    }
 }

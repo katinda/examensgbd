@@ -36,6 +36,7 @@
             <!-- Navigation -->
             <nav>
                 <button class="nav-btn active" data-section="mes-reservations">Mes réservations</button>
+                <button class="nav-btn" data-section="mes-matchs-joueur">Mes matchs (joueur)</button>
                 <button class="nav-btn" data-section="matches-publics">Matches publics</button>
                 <button class="nav-btn" data-section="mes-penalites">Mes pénalités</button>
                 <button class="nav-btn" data-section="nouvelle-reservation">Créer une réservation</button>
@@ -58,6 +59,28 @@
                     </thead>
                     <tbody id="tbody-mes-reservations">
                         <tr><td colspan="6">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- MES MATCHS EN TANT QUE JOUEUR (organisateur ou simple joueur ajouté par quelqu'un d'autre) -->
+            <section id="section-mes-matchs-joueur" class="user-section" style="display:none">
+                <h2>Mes matchs (en tant que joueur)</h2>
+                <p id="erreur-mes-matchs-joueur" style="display:none;color:red"></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Réservation</th>
+                            <th>Terrain</th>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Type</th>
+                            <th>Organisateur ?</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-mes-matchs-joueur">
+                        <tr><td colspan="7">Chargement…</td></tr>
                     </tbody>
                 </table>
             </section>

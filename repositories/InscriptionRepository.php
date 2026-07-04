@@ -32,6 +32,14 @@ class InscriptionRepository {
     }
 
 
+    // Retourne toutes les inscriptions d'un membre, tous matchs confondus (organisateur ou simple joueur).
+    public function findByMembre(int $membreId): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM Inscriptions WHERE Membre_ID = :membreId");
+        $stmt->execute([':membreId' => $membreId]);
+        return $this->hydrate($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+
     // Retourne une inscription par son ID, ou null si elle n'existe pas
     public function findById(int $inscriptionId): ?Inscription {
         $stmt = $this->pdo->prepare("SELECT * FROM Inscriptions WHERE Inscription_ID = :inscriptionId");
